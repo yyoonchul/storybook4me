@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Sparkbook Design System - Magical Storybook Landing Page
+/* Storybook4me Design System - Magical Storybook Landing Page
 All colors MUST be HSL. Focus on magic palette with soft pastel gradients.
 */
 
@@ -85,7 +85,7 @@ All colors MUST be HSL. Focus on magic palette with soft pastel gradients.
   }
 
   .dark {
-    /* Dark mode for Sparkbook - keeping it minimal since focus is on light theme */
+    /* Dark mode for Storybook4me - keeping it minimal since focus is on light theme */
     --background: 215 25% 8%;
     --foreground: 210 20% 98%;
     --card: 215 25% 12%;
