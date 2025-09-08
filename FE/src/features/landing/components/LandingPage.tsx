@@ -1,11 +1,11 @@
-import { HeroSection } from "./HeroSection"
-import { ProblemSection } from "./ProblemSection"
-import { SolutionSection } from "./SolutionSection"
-import { DifferentiatorsSection } from "./DifferentiatorsSection"
-import { SocialProofSection } from "./SocialProofSection"
-import { FinalCTASection } from "./FinalCTASection"
+import HeroSection from "./HeroSection";
+import ProblemSection from "./ProblemSection";
+import SolutionSection from "./SolutionSection";
+import DifferentiatorsSection from "./DifferentiatorsSection";
+import SocialProofSection from "./SocialProofSection";
+import FinalCTASection from "./FinalCTASection";
 
-export const LandingPage = () => {
+const LandingPage = () => {
   return (
     <main className="min-h-screen">
       <HeroSection />
@@ -15,5 +15,7 @@ export const LandingPage = () => {
       <SocialProofSection />
       <FinalCTASection />
     </main>
-  )
-}
+  );
+};
+
+export default LandingPage;

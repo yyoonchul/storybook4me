@@ -1,116 +1,73 @@
-# Sparkbook Landing Page
+# Welcome to your Lovable project
 
-A beautiful, responsive landing page for Sparkbook - an AI-powered storybook creation service that lets parents create personalized storybooks for their children in just 10 seconds.
+## Project info
 
-## 🚀 Features
+**URL**: https://lovable.dev/projects/96c0bd8c-b5db-4dea-b69c-f0b2ae17022d
 
-- **Modern React Architecture**: Built with React 18, TypeScript, and Vite
-- **Beautiful Design System**: Powered by Tailwind CSS and shadcn/ui components
-- **Smooth Animations**: Enhanced with Framer Motion for magical user experience
-- **Feature-Based Structure**: Organized for scalability and maintainability
-- **Responsive Design**: Mobile-first approach ensuring great UX across all devices
-- **Performance Optimized**: Fast loading with optimized animations and lazy loading
+## How can I edit this code?
 
-## 🏗️ Architecture
+There are several ways of editing your application.
 
-```
-src/
-├── app/              # Application-level configurations
-├── shared/           # Shared components, utilities, and constants
-│   ├── components/   # Reusable UI components (shadcn/ui)
-│   ├── utils/        # Utility functions
-│   ├── types/        # TypeScript type definitions
-│   └── constants/    # Application constants and content
-├── features/         # Feature-based organization
-│   └── landing/      # Landing page feature
-│       ├── components/
-│       │   ├── HeroSection/
-│       │   ├── ProblemSection/
-│       │   ├── SolutionSection/
-│       │   ├── DifferentiatorsSection/
-│       │   ├── SocialProofSection/
-│       │   └── FinalCTASection/
-│       ├── hooks/
-│       ├── utils/
-│       └── types/
-└── assets/           # Static assets
-```
+**Use Lovable**
 
-## 🎨 Design System
+Simply visit the [Lovable Project](https://lovable.dev/projects/96c0bd8c-b5db-4dea-b69c-f0b2ae17022d) and start prompting.
 
-The landing page follows the PRD requirements with:
+Changes made via Lovable will be committed automatically to this repo.
 
-1. **Hero Section**: Attention-grabbing headline with 10-second magic promise
-2. **Problem Section**: Empathy-building pain points for busy parents
-3. **Solution Section**: Simple 3-step process visualization
-4. **Differentiators Section**: Key competitive advantages
-5. **Social Proof Section**: Testimonials and user-generated content
-6. **Final CTA Section**: Strong conversion-focused finale
+**Use your preferred IDE**
 
-## 🚀 Getting Started
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-### Prerequisites
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-- Node.js 18+ 
-- npm or yarn
+Follow these steps:
 
-### Installation
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-```bash
-# Install dependencies
-npm install
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-# Start development server
+# Step 3: Install the necessary dependencies.
+npm i
+
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
 ```
 
-## 🎯 Key Components
+**Edit a file directly in GitHub**
 
-- **Magic Button**: Custom button with gradient background and hover animations
-- **Sparkle Text**: Gradient text with magical styling
-- **Glass Effect**: Backdrop blur effects for modern design
-- **Floating Animations**: Subtle floating elements for engagement
-- **Interactive Cards**: Hover effects and micro-interactions
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-## 🛠️ Tech Stack
+**Use GitHub Codespaces**
 
-- **React 18** - Modern React with hooks
-- **TypeScript** - Type safety and better developer experience
-- **Vite** - Fast build tool and dev server
-- **Tailwind CSS** - Utility-first CSS framework
-- **shadcn/ui** - High-quality React components
-- **Framer Motion** - Production-ready motion library
-- **Lucide React** - Beautiful icon set
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## 📱 Responsive Design
+## What technologies are used for this project?
 
-The landing page is fully responsive with:
-- Mobile-first approach
-- Tablet landscape optimization  
-- Desktop wide-screen support
-- Touch-friendly interactions
+This project is built with:
 
-## ⚡ Performance
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-- Lazy loading for images and sections
-- Optimized animations with `will-change`
-- Minimal bundle size with tree shaking
-- Progressive enhancement approach
+## How can I deploy this project?
 
-## 🎨 Customization
+Simply open [Lovable](https://lovable.dev/projects/96c0bd8c-b5db-4dea-b69c-f0b2ae17022d) and click on Share -> Publish.
 
-The design system is easily customizable through:
-- Tailwind CSS configuration
-- CSS custom properties
-- Component variants using class-variance-authority
-- Content constants for easy copy updates
+## Can I connect a custom domain to my Lovable project?
 
-## 📈 Analytics Ready
+Yes, you can!
 
-The landing page is prepared for analytics tracking with semantic HTML structure and clear conversion points for easy event tracking setup.
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

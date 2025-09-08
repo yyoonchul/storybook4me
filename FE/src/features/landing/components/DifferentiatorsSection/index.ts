@@ -1,1 +1,0 @@
-export { DifferentiatorsSection } from './DifferentiatorsSection'
