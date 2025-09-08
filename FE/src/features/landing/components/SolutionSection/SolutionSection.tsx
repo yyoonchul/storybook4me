@@ -26,12 +26,40 @@ export const SolutionSection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            {CONTENT.solution.title}
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <motion.h2 
+            className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <motion.span 
+              className="sparkle-text inline-block"
+              animate={{ 
+                textShadow: [
+                  "0 0 0 rgba(238, 76, 255, 0)",
+                  "0 0 10px rgba(238, 76, 255, 0.3)",
+                  "0 0 0 rgba(238, 76, 255, 0)"
+                ]
+              }}
+              transition={{ 
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {CONTENT.solution.title}
+            </motion.span>
+          </motion.h2>
+          <motion.p 
+            className="text-xl text-gray-600 max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
             A simple, visually-driven 3-step guide that makes the process feel effortless and magical.
-          </p>
+          </motion.p>
         </motion.div>
 
         <div className="max-w-6xl mx-auto">
@@ -53,8 +81,12 @@ export const SolutionSection = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.2 }}
                 >
-                  <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 shadow-md group">
-                    <CardContent className="p-8 text-center">
+                  <motion.div
+                    whileHover={{ y: -5, rotateY: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 shadow-md group glass-effect hover-lift hover-glow">
+                      <CardContent className="p-8 text-center">
                       {/* Step Number */}
                       <motion.div
                         className="relative mb-6"
@@ -92,7 +124,7 @@ export const SolutionSection = () => {
                       >
                         {index === 0 && (
                           <div className="text-sm text-gray-500">
-                            <div className="w-8 h-8 bg-magic-100 rounded mx-auto mb-2 flex items-center justify-center">
+                            <div className="w-8 h-8 accent-character rounded mx-auto mb-2 flex items-center justify-center shadow-sm">
                               📸
                             </div>
                             Drop photo here
@@ -111,7 +143,7 @@ export const SolutionSection = () => {
                         {index === 2 && (
                           <div className="text-sm">
                             <motion.div
-                              className="w-12 h-8 bg-gradient-to-r from-magic-400 to-pink-400 rounded mx-auto mb-2 flex items-center justify-center"
+                              className="w-12 h-8 magic-gradient rounded mx-auto mb-2 flex items-center justify-center shadow-lg"
                               animate={{ 
                                 boxShadow: [
                                   "0 0 0 0 rgba(238, 76, 255, 0.7)",
@@ -127,8 +159,9 @@ export const SolutionSection = () => {
                           </div>
                         )}
                       </motion.div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </motion.div>
               )
             })}
@@ -143,15 +176,15 @@ export const SolutionSection = () => {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             <motion.div
-              className="inline-flex items-center space-x-3 bg-magic-50 px-8 py-4 rounded-full border border-magic-200"
+              className="inline-flex items-center space-x-3 glass-effect-soft px-8 py-4 rounded-full hover-glow"
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Sparkles className="w-6 h-6 text-magic-600 animate-sparkle" />
+              <Sparkles className="w-6 h-6 text-primary-gradient animate-sparkle" />
               <span className="text-xl font-semibold sparkle-text">
                 It really is that simple!
               </span>
-              <Sparkles className="w-6 h-6 text-magic-600 animate-sparkle" style={{ animationDelay: '0.5s' }} />
+              <Sparkles className="w-6 h-6 text-primary-gradient animate-sparkle" style={{ animationDelay: '0.5s' }} />
             </motion.div>
           </motion.div>
         </div>

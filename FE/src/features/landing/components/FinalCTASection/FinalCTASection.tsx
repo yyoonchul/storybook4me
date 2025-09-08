@@ -5,7 +5,7 @@ import { Sparkles, Heart, Clock } from "lucide-react"
 
 export const FinalCTASection = () => {
   return (
-    <section className="py-20 bg-gradient-to-br from-magic-600 via-purple-700 to-pink-600 text-white relative overflow-hidden">
+    <section className="py-20 magic-gradient text-white relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -75,31 +75,31 @@ export const FinalCTASection = () => {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <motion.div
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20"
-              whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.15)" }}
+              className="glass-effect-soft rounded-xl p-6 border border-white/20 hover-glow"
+              whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Clock className="w-8 h-8 mx-auto mb-3 text-yellow-300" />
+              <Clock className="w-8 h-8 mx-auto mb-3 text-yellow-300 drop-shadow-lg" />
               <h3 className="font-semibold mb-2">Just 10 Seconds</h3>
               <p className="text-purple-100 text-sm">From idea to magical storybook</p>
             </motion.div>
 
             <motion.div
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20"
-              whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.15)" }}
+              className="glass-effect-soft rounded-xl p-6 border border-white/20 hover-glow"
+              whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Heart className="w-8 h-8 mx-auto mb-3 text-pink-300" />
+              <Heart className="w-8 h-8 mx-auto mb-3 text-pink-300 drop-shadow-lg" />
               <h3 className="font-semibold mb-2">Unforgettable Memories</h3>
               <p className="text-purple-100 text-sm">Stories your child will treasure forever</p>
             </motion.div>
 
             <motion.div
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20"
-              whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.15)" }}
+              className="glass-effect-soft rounded-xl p-6 border border-white/20 hover-glow"
+              whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <Sparkles className="w-8 h-8 mx-auto mb-3 text-blue-300" />
+              <Sparkles className="w-8 h-8 mx-auto mb-3 text-blue-300 drop-shadow-lg" />
               <h3 className="font-semibold mb-2">Pure Magic</h3>
               <p className="text-purple-100 text-sm">Watch their face light up with wonder</p>
             </motion.div>
@@ -121,7 +121,7 @@ export const FinalCTASection = () => {
               <Button 
                 variant="magic" 
                 size="xl"
-                className="bg-white text-magic-600 hover:bg-gray-100 text-xl px-12 py-6 font-bold shadow-2xl border-0 relative overflow-hidden group"
+                className="bg-white text-magic-600 hover:bg-gray-100 text-xl px-12 py-6 font-bold shadow-2xl border-0 relative overflow-hidden group hover:shadow-3xl transition-all duration-300"
               >
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-magic-200 to-pink-200 opacity-0 group-hover:opacity-20"
@@ -129,9 +129,19 @@ export const FinalCTASection = () => {
                   whileHover={{ x: "100%" }}
                   transition={{ duration: 0.6 }}
                 />
-                <Sparkles className="w-6 h-6 mr-3 group-hover:animate-spin" />
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6 mr-3" />
+                </motion.div>
                 {CONTENT.finalCTA.cta}
-                <Sparkles className="w-6 h-6 ml-3 group-hover:animate-spin" />
+                <motion.div
+                  animate={{ rotate: [0, -360] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                >
+                  <Sparkles className="w-6 h-6 ml-3" />
+                </motion.div>
               </Button>
             </motion.div>
 
@@ -153,7 +163,7 @@ export const FinalCTASection = () => {
 
           {/* Urgency Elements */}
           <motion.div
-            className="mt-12 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10"
+            className="mt-12 glass-effect-soft rounded-xl p-6 border border-white/10 hover-glow"
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}

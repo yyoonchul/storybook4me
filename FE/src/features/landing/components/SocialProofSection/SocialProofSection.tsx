@@ -32,8 +32,12 @@ export const SocialProofSection = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: index * 0.2 }}
             >
-              <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 shadow-md group">
-                <CardContent className="p-6">
+                  <motion.div
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 shadow-md group glass-effect hover-lift hover-glow">
+                      <CardContent className="p-6">
                   {/* Mock Book Cover */}
                   <motion.div
                     className="aspect-[3/4] bg-gradient-to-br from-magic-200 via-purple-200 to-pink-200 rounded-lg mb-6 relative overflow-hidden group-hover:shadow-md transition-shadow"
@@ -44,7 +48,7 @@ export const SocialProofSection = () => {
                     
                     {/* Character representation */}
                     <div className="absolute bottom-4 left-4 right-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-pink-400 rounded-full mx-auto mb-2 border-2 border-white shadow-lg"></div>
+                      <div className="w-12 h-12 accent-character rounded-full mx-auto mb-2 border-2 border-white shadow-lg"></div>
                       <div className="text-center">
                         <div className="text-xs font-semibold text-gray-700 bg-white/80 rounded px-2 py-1">
                           {testimonial.id === 'astronaut-leo' && '🚀 Leo the Astronaut'}
@@ -83,7 +87,7 @@ export const SocialProofSection = () => {
                           viewport={{ once: true }}
                           transition={{ duration: 0.2, delay: 0.1 * i }}
                         >
-                          <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                          <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 drop-shadow-sm" />
                         </motion.div>
                       ))}
                     </div>
@@ -102,20 +106,21 @@ export const SocialProofSection = () => {
                     </div>
 
                     {/* Story Prompt */}
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <p className="text-xs font-medium text-magic-600 mb-1">Created from:</p>
+                    <div className="glass-effect-soft rounded-lg p-3 text-center border border-magic-200/20">
+                      <p className="text-xs font-medium text-primary-gradient mb-1">Created from:</p>
                       <p className="text-sm text-gray-700 italic">"{testimonial.prompt}"</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
             </motion.div>
           ))}
         </div>
 
         {/* Stats Section */}
         <motion.div
-          className="bg-gradient-to-r from-magic-500 to-purple-600 rounded-2xl p-8 text-white text-center"
+          className="magic-gradient rounded-2xl p-8 text-white text-center shadow-2xl"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

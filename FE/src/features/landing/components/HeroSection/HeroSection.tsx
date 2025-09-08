@@ -5,11 +5,39 @@ import { Sparkles, Play } from "lucide-react"
 
 export const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
-      {/* Background Animation */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-soft-pastel">
+      {/* Enhanced Background Animation */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-magic-200/20 to-transparent rounded-full animate-float"></div>
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-magic-300/20 to-transparent rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
+        {/* Additional floating elements */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-4 h-4 accent-yellow rounded-full opacity-60"
+          animate={{ 
+            y: [0, -20, 0],
+            x: [0, 10, 0],
+            opacity: [0.6, 1, 0.6]
+          }}
+          transition={{ 
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div
+          className="absolute top-3/4 right-1/4 w-6 h-6 accent-character rounded-full opacity-60"
+          animate={{ 
+            y: [0, -15, 0],
+            x: [0, -15, 0],
+            opacity: [0.6, 1, 0.6]
+          }}
+          transition={{ 
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+        />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -27,9 +55,37 @@ export const HeroSection = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <span className="sparkle-text">In 10 seconds</span>, watch your child become the{" "}
+              <motion.span 
+                className="sparkle-text inline-block"
+                animate={{ 
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{ 
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                In 10 seconds
+              </motion.span>, watch your child become the{" "}
               <span className="relative">
-                hero
+                <motion.span
+                  className="relative z-10"
+                  animate={{ 
+                    textShadow: [
+                      "0 0 0 rgba(238, 76, 255, 0)",
+                      "0 0 20px rgba(238, 76, 255, 0.5)",
+                      "0 0 0 rgba(238, 76, 255, 0)"
+                    ]
+                  }}
+                  transition={{ 
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: 1
+                  }}
+                >
+                  hero
+                </motion.span>
                 <motion.div
                   className="absolute -inset-1 bg-magic-200/30 rounded-lg -skew-x-12"
                   initial={{ scaleX: 0 }}
@@ -64,20 +120,37 @@ export const HeroSection = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1 }}
             >
-              <Button 
-                variant="magic" 
-                size="xl"
-                className="w-full sm:w-auto group relative overflow-hidden"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400 }}
               >
-                <Sparkles className="w-5 h-5 mr-2 group-hover:animate-spin" />
-                {CONTENT.hero.cta}
-                <motion.div
-                  className="absolute inset-0 bg-white/20 rounded-lg"
-                  initial={{ x: "-100%" }}
-                  whileHover={{ x: "100%" }}
-                  transition={{ duration: 0.6 }}
-                />
-              </Button>
+                <Button 
+                  variant="magic" 
+                  size="xl"
+                  className="w-full sm:w-auto group relative overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-300"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                  </motion.div>
+                  {CONTENT.hero.cta}
+                  <motion.div
+                    animate={{ rotate: [0, -360] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Sparkles className="w-5 h-5 ml-2" />
+                  </motion.div>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 rounded-lg"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: "100%" }}
+                    transition={{ duration: 0.8 }}
+                  />
+                </Button>
+              </motion.div>
               
               <p className="text-sm text-gray-400 text-center sm:text-left">
                 {CONTENT.hero.ctaSubtext}
@@ -92,7 +165,7 @@ export const HeroSection = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <div className="relative bg-white rounded-3xl shadow-2xl p-8 glass-effect">
+            <div className="relative rounded-3xl shadow-2xl p-8 glass-effect hover-glow">
               {/* Mock Phone Interface */}
               <div className="bg-gray-900 rounded-2xl p-4 mb-6">
                 <div className="bg-white rounded-xl p-6 space-y-4">
@@ -102,8 +175,8 @@ export const HeroSection = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className="w-16 h-16 bg-magic-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Sparkles className="w-8 h-8 text-magic-600" />
+                    <div className="w-16 h-16 bg-soft-pastel rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-magic-200/30">
+                      <Sparkles className="w-8 h-8 text-primary-gradient" />
                     </div>
                     <p className="text-sm text-gray-600">Upload your child's photo</p>
                   </motion.div>
@@ -155,7 +228,7 @@ export const HeroSection = () => {
 
               {/* Floating Elements */}
               <motion.div
-                className="absolute -top-4 -right-4 w-8 h-8 bg-yellow-400 rounded-full"
+                className="absolute -top-4 -right-4 w-8 h-8 accent-yellow rounded-full shadow-lg"
                 animate={{ 
                   y: [0, -10, 0],
                   rotate: [0, 180, 360] 
@@ -167,7 +240,7 @@ export const HeroSection = () => {
                 }}
               />
               <motion.div
-                className="absolute -bottom-4 -left-4 w-6 h-6 bg-pink-400 rounded-full"
+                className="absolute -bottom-4 -left-4 w-6 h-6 accent-character rounded-full shadow-lg"
                 animate={{ 
                   y: [0, -15, 0],
                   x: [0, 10, 0] 

@@ -11,7 +11,7 @@ const iconMap = {
 
 export const DifferentiatorsSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-br from-magic-50 via-purple-50 to-pink-50">
+    <section className="py-20 bg-soft-pastel">
       <div className="container mx-auto px-4">
         <motion.div
           className="text-center mb-16"
@@ -44,15 +44,15 @@ export const DifferentiatorsSection = () => {
               >
                 {/* Content Side */}
                 <div className={isEven ? '' : 'lg:col-start-2'}>
-                  <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
+                  <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 glass-effect hover-lift hover-glow">
                     <CardContent className="p-8">
                       <div className="flex items-start space-x-4 mb-6">
                         <motion.div
-                          className="flex-shrink-0 w-16 h-16 bg-magic-100 rounded-xl flex items-center justify-center"
+                          className="flex-shrink-0 w-16 h-16 bg-soft-pastel rounded-xl flex items-center justify-center border-2 border-magic-200/30 shadow-lg"
                           whileHover={{ scale: 1.1, rotate: 5 }}
                           transition={{ type: "spring", stiffness: 300 }}
                         >
-                          <IconComponent className="w-8 h-8 text-magic-600" />
+                          <IconComponent className="w-8 h-8 text-primary-gradient" />
                         </motion.div>
                         
                         <div className="flex-1">
@@ -87,7 +87,7 @@ export const DifferentiatorsSection = () => {
                               viewport={{ once: true }}
                               transition={{ duration: 0.4, delay: 0.1 * idx }}
                             >
-                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <CheckCircle className="w-5 h-5 text-trust flex-shrink-0 drop-shadow-sm" />
                               <span className="text-gray-700">{feature}</span>
                             </motion.div>
                           ))}
@@ -104,7 +104,7 @@ export const DifferentiatorsSection = () => {
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   {differentiator.id === 'consistent-character' && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <div className="glass-effect rounded-2xl p-6 shadow-lg hover-glow">
                       <h4 className="text-sm font-semibold text-gray-500 mb-4 text-center">
                         Character Consistency Example
                       </h4>
@@ -130,7 +130,7 @@ export const DifferentiatorsSection = () => {
                   )}
 
                   {differentiator.id === 'truly-personal' && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <div className="glass-effect rounded-2xl p-6 shadow-lg hover-glow">
                       <h4 className="text-sm font-semibold text-gray-500 mb-4 text-center">
                         Personal Story Elements
                       </h4>
@@ -148,7 +148,7 @@ export const DifferentiatorsSection = () => {
                             viewport={{ once: true }}
                             transition={{ duration: 0.4, delay: 0.1 * idx }}
                           >
-                            <div className="text-xs font-medium text-magic-600 mb-1">
+                            <div className="text-xs font-medium text-primary-gradient mb-1">
                               {item.label}
                             </div>
                             <div className="text-sm text-gray-700 italic">
@@ -161,9 +161,9 @@ export const DifferentiatorsSection = () => {
                   )}
 
                   {differentiator.id === 'quality-trust' && (
-                    <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                    <div className="glass-effect rounded-2xl p-6 shadow-lg text-center hover-glow">
                       <motion.div
-                        className="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full mx-auto mb-4 flex items-center justify-center"
+                        className="w-20 h-20 accent-green rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg"
                         animate={{ 
                           boxShadow: [
                             "0 0 0 0 rgba(34, 197, 94, 0.7)",
