@@ -4,21 +4,28 @@ import { Input } from "../../../shared/components/ui/input";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Sparkles, Gift, Clock, CheckCircle, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import { useWaitlistApi } from "../hooks/useWaitlistApi";
 
 const WaitlistPage = () => {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addToWaitlist, isLoading, error, clearError } = useWaitlistApi();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitted(true);
-    setIsSubmitting(false);
+    clearError();
+    
+    try {
+      const result = await addToWaitlist(email);
+      if (result) {
+        setIsSubmitted(true);
+      }
+    } catch (error) {
+      // Error is handled by the hook
+      console.error('Failed to submit email:', error);
+    }
   };
 
   const benefits = [
@@ -158,9 +165,9 @@ const WaitlistPage = () => {
                     <Button 
                       type="submit"
                       className="w-full magic-gradient hover-lift hover-glow text-lg py-6 font-semibold"
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     >
-                      {isSubmitting ? (
+                      {isLoading ? (
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           Joining Waitlist...
@@ -169,6 +176,12 @@ const WaitlistPage = () => {
                         "Join Waitlist - Get 3 Months FREE"
                       )}
                     </Button>
+                    
+                    {error && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{error}</p>
+                      </div>
+                    )}
                   </form>
 
                   <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-500">
