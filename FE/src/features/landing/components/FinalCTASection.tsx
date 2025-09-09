@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { Button } from "../../../shared/components/ui/button";
 import { Sparkles, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const FinalCTASection = () => {
+  const navigate = useNavigate();
+  
   return (
     <section className="py-24 bg-dreamy relative overflow-hidden">
       
@@ -69,6 +72,7 @@ const FinalCTASection = () => {
               <Button 
                 size="lg" 
                 className="magic-gradient hover-lift hover-glow text-xl px-12 py-8 h-auto font-bold rounded-2xl shadow-soft"
+                onClick={() => navigate('/waitlist')}
               >
                 <Sparkles className="mr-3 h-6 w-6" />
                 Make My Child's Storybook in 10 Seconds
@@ -88,27 +92,6 @@ const FinalCTASection = () => {
           </motion.div>
         </motion.div>
 
-        {/* Trust signals */}
-        <motion.div 
-          className="mt-16 grid grid-cols-3 gap-8 max-w-2xl mx-auto"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          <div className="text-center">
-            <div className="text-2xl font-bold sparkle-text mb-1">50k+</div>
-            <div className="text-sm text-gray-600">Stories Created</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold sparkle-text mb-1">4.9★</div>
-            <div className="text-sm text-gray-600">Parent Rating</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold sparkle-text mb-1">15k+</div>
-            <div className="text-sm text-gray-600">Happy Families</div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );

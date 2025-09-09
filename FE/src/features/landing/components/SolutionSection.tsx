@@ -31,7 +31,7 @@ const steps = [
 
 const SolutionSection = () => {
   return (
-    <section className="py-24 bg-dreamy">
+    <section id="how-it-works" className="py-24 bg-dreamy">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         
         <motion.div 

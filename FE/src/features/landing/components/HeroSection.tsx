@@ -2,10 +2,13 @@ import { motion } from "framer-motion";
 import { Button } from "../../../shared/components/ui/button";
 import { Upload, Clock, Sparkles } from "lucide-react";
 import heroImage from "../../../assets/hero-storybook.jpg";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+  
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-soft-pastel overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center bg-soft-pastel overflow-hidden pt-16">
       {/* Floating gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -83,6 +86,7 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="magic-gradient hover-lift hover-glow text-lg px-8 py-6 h-auto font-semibold"
+                onClick={() => navigate('/waitlist')}
               >
                 <Sparkles className="mr-2 h-5 w-5" />
                 Create Your Storybook For Free
