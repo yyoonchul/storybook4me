@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "../../../shared/components/ui/card";
-import { Star, Users, BookOpen, Heart } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 
 const testimonials = [
   {
@@ -11,39 +11,22 @@ const testimonials = [
   },
   {
     rating: 5,
-    quote: "Finally, a bedtime story that my son actually wants to hear again and again. Seeing himself as the hero boosted his confidence so much!",
+    quote: "My 4-year-old was terrified of the dark after a scary dream. We created a story where she became a brave night guardian who protects other children from bad dreams. Now she actually looks forward to bedtime!",
     author: "Michael R.", 
-    prompt: "Alex saves the forest animals"
+    prompt: "Lily becomes a brave night guardian"
   },
   {
     rating: 5,
-    quote: "As a busy single mom, this is a lifesaver. Quality time with my daughter in just minutes, and she loves every story we create together.",
+    quote: "We created a story about our family camping trip last summer. My kids love seeing themselves in the tent, roasting marshmallows, and finding the 'treasure' we hid. It's become our favorite bedtime story.",
     author: "Jennifer L.",
-    prompt: "Sophia's magical garden adventure"
+    prompt: "The Johnson family's camping adventure"
   }
 ];
 
-const stats = [
-  { 
-    icon: BookOpen,
-    number: "50,000+",
-    label: "Stories Created"
-  },
-  {
-    icon: Star,
-    number: "4.9/5",
-    label: "Average Rating" 
-  },
-  {
-    icon: Users,
-    number: "15,000+",
-    label: "Happy Families"
-  }
-];
 
 const SocialProofSection = () => {
   return (
-    <section className="py-24 bg-soft-pastel">
+    <section id="testimonials" className="py-24 bg-soft-pastel">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         
         <motion.div 
@@ -107,30 +90,6 @@ const SocialProofSection = () => {
           ))}
         </div>
 
-        {/* Stats Banner */}
-        <motion.div
-          className="glass-effect rounded-3xl p-8"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            {stats.map((stat, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full bg-magic-200 flex items-center justify-center mb-3">
-                  <stat.icon className="h-6 w-6 text-magic-600" />
-                </div>
-                <div className="text-3xl font-bold sparkle-text mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-gray-600">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
 
         <motion.div 
           className="text-center mt-12"
