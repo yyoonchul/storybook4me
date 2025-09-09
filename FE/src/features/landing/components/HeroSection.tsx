@@ -49,7 +49,7 @@ const HeroSection = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.h1 
-              className="text-5xl lg:text-7xl font-bold leading-tight mb-6"
+              className="text-3xl sm:text-4xl lg:text-7xl font-bold leading-tight sm:leading-tight lg:leading-tight mb-6"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -61,7 +61,7 @@ const HeroSection = () => {
             </motion.h1>
             
             <motion.p 
-              className="text-xl lg:text-2xl text-gray-700 mb-4"
+              className="text-lg sm:text-xl lg:text-2xl text-gray-700 mb-4"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
@@ -70,7 +70,7 @@ const HeroSection = () => {
             </motion.p>
             
             <motion.p 
-              className="text-lg text-gray-600 mb-8"
+              className="text-base sm:text-lg text-gray-600 mb-8"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
@@ -95,7 +95,7 @@ const HeroSection = () => {
             >
               <Button 
                 size="lg" 
-                className="magic-gradient hover-lift hover-glow text-lg px-8 py-6 h-auto font-semibold"
+                className="magic-gradient hover-lift hover-glow text-base sm:text-lg px-4 py-4 sm:px-8 sm:py-6 h-auto font-semibold"
                 onClick={() => navigate('/waitlist')}
               >
                 <Sparkles className="mr-2 h-5 w-5" />
@@ -124,17 +124,17 @@ const HeroSection = () => {
               
               {/* Demo UI Overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="glass-effect rounded-2xl p-6 max-w-sm mx-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-magic-500 flex items-center justify-center">
-                        <Upload className="h-4 w-4 text-white" />
+                <div className="glass-effect rounded-2xl p-3 sm:p-6 max-w-xs sm:max-w-sm mx-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-magic-500 flex items-center justify-center">
+                        <Upload className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
-                      <span className="text-sm font-medium">Photo uploaded ✓</span>
+                      <span className="text-xs sm:text-sm font-medium">Photo uploaded ✓</span>
                     </div>
                     
-                    <div className="bg-white/70 rounded-lg p-3">
-                      <p className="text-sm text-gray-700">
+                    <div className="bg-white/70 rounded-lg p-2 sm:p-3">
+                      <p className="text-xs sm:text-sm text-gray-700">
                         <TypewriterText
                           text={[
                             '"My daughter Emma goes on a magical adventure..."',
@@ -146,18 +146,18 @@ const HeroSection = () => {
                           pauseBeforeDeleteMs={1200}
                           pauseBetweenWordsMs={300}
                           className=""
-                          cursorClassName="inline-block w-[1px] h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
+                          cursorClassName="inline-block w-[1px] h-3 sm:h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
                         />
                       </p>
                     </div>
                     
                     <motion.div 
-                      className="flex items-center gap-2 justify-center"
+                      className="flex items-center gap-1 sm:gap-2 justify-center"
                       animate={{ scale: [1, 1.05, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Clock className="h-4 w-4 text-magic-500" />
-                      <span className="text-sm font-semibold sparkle-text">
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-magic-500" />
+                      <span className="text-xs sm:text-sm font-semibold sparkle-text">
                         Creating magic... 3s
                       </span>
                     </motion.div>
