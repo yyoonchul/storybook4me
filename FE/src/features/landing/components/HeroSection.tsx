@@ -3,6 +3,7 @@ import { Button } from "../../../shared/components/ui/button";
 import { Upload, Clock, Sparkles } from "lucide-react";
 import heroImage from "../../../assets/hero-storybook.jpg";
 import { useNavigate } from "react-router-dom";
+import TypewriterText from "../../../shared/components/TypewriterText";
 
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -77,6 +78,15 @@ const HeroSection = () => {
               Just upload a photo and a story idea. Let the magic begin.
             </motion.p>
 
+            <motion.p
+              className="text-xs text-gray-500 -mt-6 mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+            >
+              * Your personal data and photos are securely handled and deleted immediately after your storybook is created.
+            </motion.p>
+
             <motion.div 
               className="space-y-4"
               initial={{ opacity: 0, y: 30 }}
@@ -123,9 +133,21 @@ const HeroSection = () => {
                       <span className="text-sm font-medium">Photo uploaded ✓</span>
                     </div>
                     
-                    <div className="bg-white/50 rounded-lg p-3">
+                    <div className="bg-white/70 rounded-lg p-3">
                       <p className="text-sm text-gray-700">
-                        "My daughter Emma goes on a magical adventure..."
+                        <TypewriterText
+                          text={[
+                            '"My daughter Emma goes on a magical adventure..."',
+                            '"Our son Leo explores a hidden jungle temple..."',
+                            '"Twins Mia and Noah build a rocket to the moon!"'
+                          ]}
+                          typingSpeedMs={32}
+                          deletingSpeedMs={20}
+                          pauseBeforeDeleteMs={1200}
+                          pauseBetweenWordsMs={300}
+                          className=""
+                          cursorClassName="inline-block w-[1px] h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
+                        />
                       </p>
                     </div>
                     

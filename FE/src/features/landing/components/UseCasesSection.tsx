@@ -6,6 +6,8 @@ import landingExample1 from "../../../assets/landing_example1.png";
 import landingExample2 from "../../../assets/landing_example2.png";
 import landingExample3 from "../../../assets/landing_example3.png";
 import { useNavigate } from "react-router-dom";
+import TypewriterText from "../../../shared/components/TypewriterText";
+import { useEffect, useRef, useState } from "react";
 
 const useCases = [
   {
@@ -42,9 +44,28 @@ const useCases = [
 
 const UseCasesSection = () => {
   const navigate = useNavigate();
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  const [isActive, setIsActive] = useState(false);
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsActive(true);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   
   return (
-    <section id="examples" className="py-24 bg-white">
+    <section id="examples" className="py-24 bg-white" ref={sectionRef}>
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         
         <motion.div 
@@ -136,11 +157,15 @@ const UseCasesSection = () => {
                         <div className="flex-1 min-w-0">
                           <div className="bg-white/80 rounded-lg p-3 border border-gray-200/50">
                             <p className="text-sm text-gray-800 leading-relaxed inline">
-                              {useCase.example}
-                              <motion.span
-                                className="inline-block w-0.5 h-4 bg-magic-500 ml-1 align-text-bottom"
-                                animate={{ opacity: [1, 0, 1] }}
-                                transition={{ duration: 1, repeat: Infinity }}
+                              <TypewriterText
+                                text={useCase.example}
+                                typingSpeedMs={32}
+                                deletingSpeedMs={20}
+                                pauseBeforeDeleteMs={1800}
+                                pauseBetweenWordsMs={400}
+                                loop={true}
+                                cursorClassName="inline-block w-[1px] h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
+                                active={isActive}
                               />
                             </p>
                           </div>
