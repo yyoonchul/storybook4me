@@ -151,12 +151,12 @@ const UseCasesSection = () => {
                   />
                   
                   {/* Prompt Input Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <div className="glass-effect rounded-xl p-4 mx-4">
-                      <div className="flex items-start gap-3">
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6">
+                    <div className="glass-effect rounded-xl p-3 sm:p-4 mx-2 sm:mx-4">
+                      <div className="flex items-start gap-2 sm:gap-3">
                         <div className="flex-1 min-w-0">
-                          <div className="bg-white/80 rounded-lg p-3 border border-gray-200/50">
-                            <p className="text-sm text-gray-800 leading-relaxed inline">
+                          <div className="bg-white/80 rounded-lg p-2 sm:p-3 border border-gray-200/50">
+                            <p className="text-xs sm:text-sm text-gray-800 leading-relaxed inline">
                               <TypewriterText
                                 text={useCase.example}
                                 typingSpeedMs={32}
@@ -164,12 +164,12 @@ const UseCasesSection = () => {
                                 pauseBeforeDeleteMs={1800}
                                 pauseBetweenWordsMs={400}
                                 loop={true}
-                                cursorClassName="inline-block w-[1px] h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
+                                cursorClassName="inline-block w-[1px] h-3 sm:h-4 bg-gray-700 ml-0.5 align-middle animate-pulse"
                                 active={isActive}
                               />
                             </p>
                           </div>
-                          <p className="text-xs text-white/80 mt-2 font-medium">
+                          <p className="text-xs text-white/80 mt-1 sm:mt-2 font-medium">
                             Creating your story...
                           </p>
                         </div>
