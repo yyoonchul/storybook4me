@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { WaitlistPage } from "./features/landing/components";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
