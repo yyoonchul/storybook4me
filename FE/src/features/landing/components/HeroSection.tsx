@@ -49,7 +49,7 @@ const HeroSection = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <motion.h1 
-              className="text-3xl sm:text-4xl lg:text-7xl font-bold leading-tight sm:leading-tight lg:leading-tight mb-6"
+              className="text-2xl sm:text-3xl lg:text-6xl font-bold leading-[1.1] sm:leading-[1] lg:leading-[1] mb-6"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
