@@ -105,6 +105,10 @@ All colors MUST be HSL. Focus on magic palette with soft pastel gradients.
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     @apply border-border;
   }
