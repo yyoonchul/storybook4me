@@ -1,4 +1,5 @@
-import Header from "./Header";
+import Header from "../../../shared/components/layout/Header";
+import Footer from "../../../shared/components/layout/Footer";
 import HeroSection from "./HeroSection";
 import ProblemSection from "./ProblemSection";
 import UseCasesSection from "./UseCasesSection";
@@ -20,6 +21,7 @@ const LandingPage = () => {
         <SocialProofSection />
         <FinalCTASection />
       </main>
+      <Footer />
     </>
   );
 };

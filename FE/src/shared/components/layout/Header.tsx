@@ -1,28 +1,33 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { User, Settings, CreditCard, LogOut } from "lucide-react";
+import { useAuth } from "../../lib/auth";
 
-interface HeaderProps {
-  isLoggedIn?: boolean;
-  userAvatar?: string;
-  userName?: string;
-  onLogin?: () => void;
-  onLogout?: () => void;
-}
-
-const Header = ({ isLoggedIn = false, userAvatar, userName, onLogin, onLogout }: HeaderProps) => {
+const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isLoggedIn, userAvatar, userName, login, logout } = useAuth();
 
   const handleLogin = () => {
-    onLogin?.();
+    login();
   };
 
   const handleLogout = () => {
-    onLogout?.();
+    logout();
     navigate("/");
+  };
+
+  const scrollOrNavigate = (targetId: string) => {
+    if (location.pathname === "/") {
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      navigate("/", { state: { scrollTo: targetId, timestamp: Date.now() } });
+    }
   };
 
   if (isLoggedIn) {
@@ -44,10 +49,10 @@ const Header = ({ isLoggedIn = false, userAvatar, userName, onLogin, onLogout }:
             </Link>
             
             <nav className="hidden md:flex items-center space-x-6">
-              <a href="#bookshelf" className="text-sm font-medium transition-colors hover:text-primary">
+              <a href="/#bookshelf" onClick={(e) => { e.preventDefault(); scrollOrNavigate("bookshelf"); }} className="text-sm font-medium transition-colors hover:text-primary">
                 My Bookshelf
               </a>
-              <a href="#family" className="text-sm font-medium transition-colors hover:text-primary">
+              <a href="/#family" onClick={(e) => { e.preventDefault(); scrollOrNavigate("family"); }} className="text-sm font-medium transition-colors hover:text-primary">
                 My Family
               </a>
               <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">

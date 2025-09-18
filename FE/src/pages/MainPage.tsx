@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "../shared/components/ui/button";
 import { Card, CardContent } from "../shared/components/ui/card";
@@ -8,6 +8,7 @@ import { Input } from "../shared/components/ui/input";
 import { Sparkles, Edit3, ArrowRight } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
+import { useAuth } from "../shared/lib/auth";
 
 // Mock data - replace with real data later
 const mockExploreBooks = [
@@ -32,7 +33,7 @@ const mockBookshelf = [
 
 const MainPage = () => {
   const [storyPrompt, setStoryPrompt] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // This should come from auth context
+  const { isLoggedIn } = useAuth();
   // Typewriter placeholder state
   const typewriterExamples = [
     'My daughter Emma goes on a magical adventure...',
@@ -51,6 +52,7 @@ const MainPage = () => {
   const [twDeleting, setTwDeleting] = useState(false);
   const [twText, setTwText] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const samplePrompts = [
     "A brave princess saves her kingdom",
     "A dinosaur adventure in the city",
@@ -58,6 +60,32 @@ const MainPage = () => {
     "A friendly dragon learns to cook",
     "Pirate cat searching for hidden treasure",
   ];
+
+  // Handle route-and-scroll when navigated with state or hash
+  useEffect(() => {
+    const performScroll = (id: string) => {
+      const el = document.getElementById(id);
+      if (el) {
+        // Allow layout to paint before scrolling
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    };
+
+    const state = location.state as { scrollTo?: string } | null;
+    if (state?.scrollTo) {
+      performScroll(state.scrollTo);
+      // clear state so back/forward doesn't re-scroll unexpectedly
+      navigate(location.pathname, { replace: true });
+      return;
+    }
+
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      if (id) performScroll(id);
+    }
+  }, [location, navigate]);
 
   // Animate typewriter when input is empty
   useEffect(() => {
@@ -109,23 +137,9 @@ const MainPage = () => {
     navigate(`/studio?prompt=${encodeURIComponent(storyPrompt)}`);
   };
 
-  const handleLogin = () => {
-    // Mock login - replace with real auth
-    setIsLoggedIn(true);
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
-      <Header 
-        isLoggedIn={isLoggedIn} 
-        onLogin={handleLogin} 
-        onLogout={handleLogout}
-        userName="사용자"
-      />
+      <Header />
       
       <main className="flex-1 relative">
         {/* Fixed viewport gradient background */}

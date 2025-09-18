@@ -12,7 +12,7 @@ const Footer = () => {
                 About Us
               </Link>
               <Link to="/explore" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Blog/Examples
+                Examples
               </Link>
             </div>
           </div>
@@ -21,7 +21,7 @@ const Footer = () => {
             <h3 className="text-sm font-semibold">Support</h3>
             <div className="flex flex-col space-y-2">
               <Link to="/faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Help Center/FAQ
+                FAQ
               </Link>
               <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Contact
@@ -45,7 +45,7 @@ const Footer = () => {
             <h3 className="text-sm font-semibold">Social Media</h3>
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                © 2024 Sparkbook. All rights reserved.
+                © 2025 storybook4me. All rights reserved.
               </p>
             </div>
           </div>
