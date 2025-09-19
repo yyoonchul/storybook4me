@@ -295,7 +295,7 @@ const MainPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Bookshelf</h2>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/studio")}>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/studio?mode=settings")}>
                       Create New
                     </Button>
                   </div>

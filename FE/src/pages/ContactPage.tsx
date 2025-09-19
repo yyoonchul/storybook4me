@@ -53,7 +53,7 @@ const ContactPage = () => {
 
             <div className="flex justify-end">
               <Button variant="link" type="button" asChild>
-                <p><a href="mailto:hello@storybook4.me" className="text-magic-600">Or email us</a></p>
+                <p><a href="mailto:yoonchulyi@gmail.com" className="text-magic-600">Or email us</a></p>
               </Button>
             </div>
           </form>

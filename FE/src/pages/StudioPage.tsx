@@ -59,13 +59,14 @@ const StudioPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const prompt = searchParams.get("prompt");
+  const initialMode = searchParams.get("mode");
 
   const [currentPage, setCurrentPage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState(mockChatHistory);
   const [storyData, setStoryData] = useState(mockStoryData);
-  const [rightMode, setRightMode] = useState<'preview' | 'settings'>('preview');
+  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(initialMode === 'settings' ? 'settings' : 'preview');
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const synopsisBtnRef = useRef<HTMLButtonElement>(null);

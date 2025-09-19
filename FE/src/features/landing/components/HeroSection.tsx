@@ -96,7 +96,7 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="magic-gradient hover-lift hover-glow text-base sm:text-lg px-4 py-4 sm:px-8 sm:py-6 h-auto font-semibold"
-                onClick={() => navigate('/waitlist')}
+                onClick={() => navigate('/')}
               >
                 <Sparkles className="mr-2 h-5 w-5" />
                 Create Your Storybook For Free

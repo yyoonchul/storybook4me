@@ -76,7 +76,7 @@ const Header = () => {
           >
             <Button 
               className="magic-gradient hover-lift hover-glow"
-              onClick={() => navigate('/waitlist')}
+              onClick={() => navigate('/')}
             >
               Create Your Story
             </Button>
@@ -121,7 +121,7 @@ const Header = () => {
             <div className="pt-4">
               <Button 
                 className="magic-gradient hover-lift hover-glow w-full"
-                onClick={() => navigate('/waitlist')}
+                onClick={() => navigate('/')}
               >
                 Create Your Story
               </Button>

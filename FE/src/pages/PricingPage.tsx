@@ -15,7 +15,7 @@ const PricingPage = () => {
           <p className="text-gray-600 mb-10">Get started fast. Choose the plan that fits your needs.</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="flex flex-col">
+            <Card className="flex flex-col hover-lift transition-all duration-300 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Free</CardTitle>
@@ -38,7 +38,7 @@ const PricingPage = () => {
               </CardFooter>
             </Card>
 
-            <Card className="relative border-primary/30 flex flex-col">
+            <Card className="relative border-primary/30 flex flex-col hover-lift transition-all duration-300 hover:shadow-lg hover:border-primary/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Starter</CardTitle>
@@ -62,7 +62,7 @@ const PricingPage = () => {
               </CardFooter>
             </Card>
 
-            <Card className="flex flex-col">
+            <Card className="flex flex-col hover-lift transition-all duration-300 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Pro</CardTitle>
