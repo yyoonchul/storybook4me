@@ -4,14 +4,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { User, Settings, CreditCard, LogOut } from "lucide-react";
 import { useAuth } from "../../lib/auth";
+import { AuthModal } from "../AuthModal";
+import { useState } from "react";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, userAvatar, userName, login, logout } = useAuth();
+  const { isLoggedIn, userAvatar, userName, logout } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
-  const handleLogin = () => {
-    login();
+  const handleLoginClick = () => {
+    setAuthModalMode('login');
+    setAuthModalOpen(true);
+  };
+
+  const handleSignupClick = () => {
+    setAuthModalMode('signup');
+    setAuthModalOpen(true);
   };
 
   const handleLogout = () => {
@@ -120,14 +130,20 @@ const Header = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={handleLogin}>
-            Log In
+          <Button variant="ghost" onClick={handleLoginClick}>
+            Sign In
           </Button>
-          <Button onClick={handleLogin}>
+          <Button onClick={handleSignupClick}>
             Sign Up Free
           </Button>
         </div>
       </div>
+      
+      <AuthModal 
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        initialMode={authModalMode}
+      />
     </header>
   );
 };
