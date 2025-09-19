@@ -1,6 +1,6 @@
-import Header from "../shared/components/layout/Header";
-import Footer from "../shared/components/layout/Footer";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../shared/components/ui/accordion";
+import Header from "../../shared/components/layout/Header";
+import Footer from "../../shared/components/layout/Footer";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../../shared/components/ui/accordion";
 
 const FAQPage = () => {
   return (

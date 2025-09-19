@@ -13,10 +13,11 @@ import AccountPage from "./pages/settings/AccountPage";
 import BillingPage from "./pages/settings/BillingPage";
 import CharacterFormPage from "./pages/family/CharacterFormPage";
 import FamilyPage from "./pages/FamilyPage";
-import FAQPage from "./pages/FAQPage";
-import ContactPage from "./pages/ContactPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
+import AboutPage from "./pages/info/AboutPage";
+import FAQPage from "./pages/info/FAQPage";
+import ContactPage from "./pages/info/ContactPage";
+import TermsPage from "./pages/info/TermsPage";
+import PrivacyPage from "./pages/info/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import { LandingPage } from "@/features/landing";
 import { AuthProvider } from "./shared/lib/auth";
@@ -47,7 +48,7 @@ const App = () => {
               <Route path="/settings/account" element={<AccountPage />} />
               <Route path="/settings/billing" element={<BillingPage />} />
               <Route path="/family/character/:id" element={<CharacterFormPage />} />
-              <Route path="/about" element={<LandingPage />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/faq" element={<FAQPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/terms" element={<TermsPage />} />
