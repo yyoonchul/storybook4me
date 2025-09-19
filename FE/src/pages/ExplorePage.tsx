@@ -3,8 +3,6 @@ import Footer from "../shared/components/layout/Footer";
 import StoryCard, { type Story } from "../shared/components/StoryCard";
 import { Input } from "../shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shared/components/ui/select";
-import { Switch } from "../shared/components/ui/switch";
-import { Label } from "../shared/components/ui/label";
 import { useMemo, useState } from "react";
 
 const sampleStories: Story[] = [
@@ -18,7 +16,6 @@ const sampleStories: Story[] = [
     likes: 124,
     views: 2301,
     createdAt: "2025-08-01T10:00:00Z",
-    isPremium: false,
   },
   {
     id: "2",
@@ -30,7 +27,6 @@ const sampleStories: Story[] = [
     likes: 89,
     views: 1400,
     createdAt: "2025-07-12T10:00:00Z",
-    isPremium: true,
   },
   {
     id: "3",
@@ -42,7 +38,6 @@ const sampleStories: Story[] = [
     likes: 201,
     views: 4102,
     createdAt: "2025-05-22T10:00:00Z",
-    isPremium: false,
   },
   {
     id: "4",
@@ -54,7 +49,6 @@ const sampleStories: Story[] = [
     likes: 45,
     views: 780,
     createdAt: "2025-09-05T10:00:00Z",
-    isPremium: true,
   },
 ];
 
@@ -67,16 +61,9 @@ const sortOptions = [
 
 type SortKey = typeof sortOptions[number]["value"];
 
-enum PremiumFilter {
-  All = "all",
-  Free = "free",
-  Premium = "premium",
-}
-
 const ExplorePage = () => {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("All");
-  const [premium, setPremium] = useState<PremiumFilter>(PremiumFilter.All);
   const [sortBy, setSortBy] = useState<SortKey>("latest");
 
   const filtered = useMemo(() => {
@@ -98,10 +85,6 @@ const ExplorePage = () => {
       list = list.filter((s) => s.category === category);
     }
 
-    // premium filter
-    if (premium === PremiumFilter.Free) list = list.filter((s) => !s.isPremium);
-    if (premium === PremiumFilter.Premium) list = list.filter((s) => s.isPremium);
-
     // sorting
     list.sort((a, b) => {
       if (sortBy === "latest") return +new Date(b.createdAt) - +new Date(a.createdAt);
@@ -111,7 +94,7 @@ const ExplorePage = () => {
     });
 
     return list;
-  }, [query, category, premium, sortBy]);
+  }, [query, category, sortBy]);
 
   const onOpen = (id: string) => {
     // TODO: navigate to story viewer
@@ -127,11 +110,11 @@ const ExplorePage = () => {
           <p className="text-muted-foreground mb-8">Browse community stories. Use search, filters, and sorting to find what you like.</p>
 
           {/* Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-8">
-            <div className="md:col-span-2">
+          <div className="flex flex-col sm:flex-row gap-4 items-end mb-8">
+            <div className="flex-1 min-w-0">
               <Input placeholder="Search by title, author, or tag" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
-            <div>
+            <div className="w-full sm:w-auto sm:min-w-[140px]">
               <Select value={category} onValueChange={(v) => setCategory(v as (typeof categories)[number])}>
                 <SelectTrigger>
                   <SelectValue placeholder="Category" />
@@ -145,7 +128,7 @@ const ExplorePage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="w-full sm:w-auto sm:min-w-[140px]">
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sort by" />
@@ -158,22 +141,6 @@ const ExplorePage = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          {/* Premium toggle row */}
-          <div className="flex items-center gap-6 mb-6">
-            <div className="flex items-center gap-2">
-              <Switch id="pf-all" checked={premium === PremiumFilter.All} onCheckedChange={(v) => v && setPremium(PremiumFilter.All)} />
-              <Label htmlFor="pf-all">All</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="pf-free" checked={premium === PremiumFilter.Free} onCheckedChange={(v) => v && setPremium(PremiumFilter.Free)} />
-              <Label htmlFor="pf-free">Free</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="pf-premium" checked={premium === PremiumFilter.Premium} onCheckedChange={(v) => v && setPremium(PremiumFilter.Premium)} />
-              <Label htmlFor="pf-premium">Premium</Label>
             </div>
           </div>
 

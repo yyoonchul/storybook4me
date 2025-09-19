@@ -29,10 +29,7 @@ const StoryCard = ({ story, onOpen }: StoryCardProps) => {
         </div>
       ) : null}
       <CardHeader className="space-y-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{story.title}</CardTitle>
-          {story.isPremium ? <Badge>Premium</Badge> : <Badge variant="secondary">Free</Badge>}
-        </div>
+        <CardTitle className="text-lg">{story.title}</CardTitle>
         <CardDescription>by {story.author}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

@@ -244,8 +244,8 @@ const MainPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Bookshelf</h2>
-                    <Button variant="outline" size="sm" onClick={() => navigate("/bookshelf")}>
-                      View All
+                    <Button variant="outline" size="sm">
+                      Create New
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">

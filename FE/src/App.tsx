@@ -17,38 +17,48 @@ import PrivacyPage from "./pages/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import { LandingPage } from "@/features/landing";
 import { AuthProvider } from "./shared/lib/auth";
+import { useScrollToTop } from "./shared/hooks/useScrollToTop";
 
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainPage />} />
-            <Route path="/welcome" element={<WelcomePage />} />
-            {/* Removed standalone Bookshelf/Family routes; handled by main page section scroll */}
-            <Route path="/explore" element={<ExplorePage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/studio" element={<StudioPage />} />
-            <Route path="/settings/account" element={<AccountPage />} />
-            <Route path="/settings/billing" element={<BillingPage />} />
-            <Route path="/about" element={<LandingPage />} />
-            <Route path="/faq" element={<FAQPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthProvider>
+          <BrowserRouter>
+            <ScrollToTopWrapper />
+            <Routes>
+              <Route path="/" element={<MainPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
+              {/* Removed standalone Bookshelf/Family routes; handled by main page section scroll */}
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/studio" element={<StudioPage />} />
+              <Route path="/settings/account" element={<AccountPage />} />
+              <Route path="/settings/billing" element={<BillingPage />} />
+              <Route path="/about" element={<LandingPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+// Wrapper component to use the hook inside BrowserRouter
+const ScrollToTopWrapper = () => {
+  useScrollToTop();
+  return null;
+};
 
 export default App;
