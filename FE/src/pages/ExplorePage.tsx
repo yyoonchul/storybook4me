@@ -4,6 +4,7 @@ import StoryCard, { type Story } from "../shared/components/StoryCard";
 import { Input } from "../shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shared/components/ui/select";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const sampleStories: Story[] = [
   {
@@ -62,6 +63,7 @@ const sortOptions = [
 type SortKey = typeof sortOptions[number]["value"];
 
 const ExplorePage = () => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("All");
   const [sortBy, setSortBy] = useState<SortKey>("latest");
@@ -97,8 +99,7 @@ const ExplorePage = () => {
   }, [query, category, sortBy]);
 
   const onOpen = (id: string) => {
-    // TODO: navigate to story viewer
-    console.log("open story", id);
+    navigate(`/book/${id}`);
   };
 
   return (

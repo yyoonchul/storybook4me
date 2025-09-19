@@ -5,9 +5,10 @@ import { Button } from "../shared/components/ui/button";
 import { Card, CardContent } from "../shared/components/ui/card";
 import { Separator } from "../shared/components/ui/separator";
 import { Input } from "../shared/components/ui/input";
-import { Sparkles, Edit3, ArrowRight } from "lucide-react";
+import { Sparkles, Plus, ArrowRight } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
+import CharacterModal from "../shared/components/CharacterModal";
 import { useAuth } from "../shared/lib/auth";
 
 // Mock data - replace with real data later
@@ -21,8 +22,20 @@ const mockExploreBooks = [
 ];
 
 const mockFamilyMembers = [
-  { id: 1, name: "Chloe", avatar: "/cover.png" },
-  { id: 2, name: "Jihoon", avatar: "/cover.png" },
+  { 
+    id: "1", 
+    name: "Emma", 
+    avatar: "/cover.png",
+    description: "A brave 8-year-old with curly brown hair who loves adventures",
+    appearance: "Curly brown hair, bright green eyes, always wearing her favorite red cape"
+  },
+  { 
+    id: "2", 
+    name: "Max", 
+    avatar: "/cover.png",
+    description: "A curious 6-year-old boy who dreams of being a space explorer",
+    appearance: "Short blonde hair, blue eyes, usually in his astronaut costume"
+  },
 ];
 
 const mockBookshelf = [
@@ -33,6 +46,9 @@ const mockBookshelf = [
 
 const MainPage = () => {
   const [storyPrompt, setStoryPrompt] = useState("");
+  const [characterModalOpen, setCharacterModalOpen] = useState(false);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | undefined>();
+  const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
   const { isLoggedIn } = useAuth();
   // Typewriter placeholder state
   const typewriterExamples = [
@@ -135,6 +151,41 @@ const MainPage = () => {
     
     // Navigate to studio with prompt
     navigate(`/studio?prompt=${encodeURIComponent(storyPrompt)}`);
+  };
+
+  const handleAddCharacter = () => {
+    setSelectedCharacterId(undefined);
+    setCharacterModalOpen(true);
+  };
+
+  const handleEditCharacter = (characterId: string) => {
+    setSelectedCharacterId(characterId);
+    setCharacterModalOpen(true);
+  };
+
+  const handleSaveCharacter = (character: any) => {
+    if (character.id) {
+      // Edit existing character
+      setFamilyMembers(prev => 
+        prev.map(member => 
+          member.id === character.id 
+            ? { ...member, ...character, avatar: character.image || member.avatar }
+            : member
+        )
+      );
+    } else {
+      // Add new character
+      const newCharacter = {
+        ...character,
+        id: Date.now().toString(),
+        avatar: character.image || "/cover.png"
+      };
+      setFamilyMembers(prev => [...prev, newCharacter]);
+    }
+  };
+
+  const handleDeleteCharacter = (characterId: string) => {
+    setFamilyMembers(prev => prev.filter(member => member.id !== characterId));
   };
 
   return (
@@ -244,13 +295,13 @@ const MainPage = () => {
                 <div>
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Bookshelf</h2>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => navigate("/studio")}>
                       Create New
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {mockBookshelf.map((book) => (
-                      <Card key={book.id} className="hover-lift">
+                      <Card key={book.id} className="hover-lift cursor-pointer" onClick={() => navigate(`/book/${book.id}`)}>
                         <CardContent className="p-0">
                           <div className="aspect-[3/4] bg-gray-200 rounded-t-lg overflow-hidden">
                             <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
@@ -272,14 +323,18 @@ const MainPage = () => {
                 <div id="family" className="scroll-mt-20">
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Family</h2>
-                    <Button variant="outline" size="sm">
-                      <Edit3 className="w-4 h-4 mr-2" />
-                      Edit
+                    <Button variant="outline" size="sm" onClick={handleAddCharacter}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Character
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {mockFamilyMembers.map((member) => (
-                      <Card key={member.id} className="hover-lift">
+                    {familyMembers.map((member) => (
+                      <Card 
+                        key={member.id} 
+                        className="hover-lift cursor-pointer" 
+                        onClick={() => handleEditCharacter(member.id)}
+                      >
                         <CardContent className="p-4 text-center">
                           <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-200 overflow-hidden">
                             <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
@@ -304,7 +359,7 @@ const MainPage = () => {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {mockExploreBooks.map((book) => (
-                    <Card key={book.id} className="hover-lift">
+                    <Card key={book.id} className="hover-lift cursor-pointer" onClick={() => navigate(`/book/${book.id}`)}>
                       <CardContent className="p-0">
                         <div className="aspect-[3/4] bg-gray-200 rounded-t-lg overflow-hidden">
                           <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
@@ -323,6 +378,15 @@ const MainPage = () => {
       </main>
 
       <Footer />
+
+      {/* Character Modal */}
+      <CharacterModal
+        isOpen={characterModalOpen}
+        onClose={() => setCharacterModalOpen(false)}
+        characterId={selectedCharacterId}
+        onSave={handleSaveCharacter}
+        onDelete={handleDeleteCharacter}
+      />
     </div>
   );
 };
