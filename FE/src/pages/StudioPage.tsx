@@ -204,7 +204,7 @@ const StudioPage = () => {
             
             <Button onClick={handleFinishStory} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
               <Sparkles className="w-4 h-4 mr-2" />
-              Generate Storybook
+              Create Storybook
             </Button>
           </div>
         </div>
