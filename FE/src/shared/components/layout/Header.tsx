@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Settings, CreditCard, LogOut } from "lucide-react";
-import { SignedIn, SignedOut, SignInButton, SignUpButton, SignOutButton, UserButton, useClerk } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton, SignUpButton, SignOutButton, UserButton, useClerk } from "@/features/auth";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -39,12 +39,39 @@ const Header = () => {
           </Link>
           
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">
-              Explore
-            </Link>
-            <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-              Pricing
-            </Link>
+            <SignedIn>
+              <a
+                href="/#bookshelf"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollOrNavigate("bookshelf");
+                }}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                My Bookshelf
+              </a>
+              <a
+                href="/#family"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollOrNavigate("family");
+                }}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                My Family
+              </a>
+              <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">
+                Explore
+              </Link>
+            </SignedIn>
+            <SignedOut>
+              <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">
+                Explore
+              </Link>
+              <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
+                Pricing
+              </Link>
+            </SignedOut>
           </nav>
         </div>
 

@@ -6,6 +6,7 @@ import { Card, CardContent } from "../shared/components/ui/card";
 import { Separator } from "../shared/components/ui/separator";
 import { Input } from "../shared/components/ui/input";
 import { Switch } from "../shared/components/ui/switch";
+import { SignedIn, SignedOut, useUser, useClerk } from "@/features/auth";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -21,7 +22,7 @@ import { Sparkles, Plus, ArrowRight, Edit3, Trash2, Lock, Unlock, Save, X, Globe
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
 import CharacterModal from "../shared/components/CharacterModal";
-import { useAuth } from "../features/auth";
+// Clerk is the source of truth for auth state; remove legacy auth usage
 
 // Mock data - replace with real data later
 const mockExploreBooks = [
@@ -65,7 +66,8 @@ const MainPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<number | null>(null);
   const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
-  const { isLoggedIn } = useAuth();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   // Typewriter placeholder state
   const typewriterExamples = [
     'My daughter Emma goes on a magical adventure...',
@@ -154,9 +156,8 @@ const MainPage = () => {
   }, [storyPrompt, twIndex, twChar, twDeleting]);
 
   const handleCreateStory = () => {
-    if (!isLoggedIn) {
-      // Open login modal - for now just alert
-      alert("Login required!");
+    if (!isSignedIn) {
+      openSignIn?.();
       return;
     }
     
@@ -336,7 +337,7 @@ const MainPage = () => {
           <div className="mx-auto w-[98%] max-w-7xl glass-effect rounded-3xl p-8 md:p-12 bg-white/70">
             <div className="space-y-12">
               {/* Bookshelf Section - Only if logged in */}
-              {isLoggedIn && (
+              <SignedIn>
                 <div>
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Bookshelf</h2>
@@ -449,12 +450,14 @@ const MainPage = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              </SignedIn>
 
-              {isLoggedIn && <Separator className="my-8 opacity-30" />}
+              <SignedIn>
+                <Separator className="my-8 opacity-30" />
+              </SignedIn>
 
               {/* Family Section - Only if logged in */}
-              {isLoggedIn && (
+              <SignedIn>
                 <div id="family" className="scroll-mt-20">
                   <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold">My Family</h2>
@@ -480,9 +483,11 @@ const MainPage = () => {
                     ))}
                   </div>
                 </div>
-              )}
+              </SignedIn>
 
-              {isLoggedIn && <Separator className="my-8 opacity-30" />}
+              <SignedIn>
+                <Separator className="my-8 opacity-30" />
+              </SignedIn>
 
               {/* Explore Section */}
               <div>
