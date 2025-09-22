@@ -20,7 +20,7 @@ import TermsPage from "./pages/info/TermsPage";
 import PrivacyPage from "./pages/info/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import { LandingPage } from "@/features/landing";
-import { AuthProvider } from "./shared/lib/auth";
+import { AuthProvider } from "./features/auth";
 import { useScrollToTop } from "./shared/hooks/useScrollToTop";
 
 

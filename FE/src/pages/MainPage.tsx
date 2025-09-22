@@ -21,7 +21,7 @@ import { Sparkles, Plus, ArrowRight, Edit3, Trash2, Lock, Unlock, Save, X, Globe
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
 import CharacterModal from "../shared/components/CharacterModal";
-import { useAuth } from "../shared/lib/auth";
+import { useAuth } from "../features/auth";
 
 // Mock data - replace with real data later
 const mockExploreBooks = [

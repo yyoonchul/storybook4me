@@ -5,11 +5,11 @@ import {
   DialogHeader, 
   DialogTitle,
   DialogDescription
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Separator } from "./ui/separator";
+} from "../../../shared/components/ui/dialog";
+import { Button } from "../../../shared/components/ui/button";
+import { Input } from "../../../shared/components/ui/input";
+import { Label } from "../../../shared/components/ui/label";
+import { Separator } from "../../../shared/components/ui/separator";
 import { Mail, Lock, Chrome } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
@@ -29,11 +29,9 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
   
   const { login } = useAuth();
 
-  // 모달이 열릴 때마다 initialMode로 리셋
   useEffect(() => {
     if (open) {
       setMode(initialMode);
-      // 폼도 초기화
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -45,31 +43,22 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // 실제 로그인/가입 로직이 없으므로 간단히 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 로그인 상태로 변경
     login({
       userName: name || email.split('@')[0],
       userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
     });
-    
     setIsLoading(false);
     onOpenChange(false);
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
-    // Google 로그인 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
     login({
       userName: 'Google User',
       userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=google'
     });
-    
     setIsLoading(false);
     onOpenChange(false);
   };
@@ -94,7 +83,6 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
-          {/* Google 로그인 버튼 */}
           <Button
             type="button"
             variant="outline"
@@ -106,14 +94,13 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
             Continue with Google
           </Button>
 
-            <div className="relative">
-              <Separator />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-white px-4 text-sm text-gray-700 font-medium">or</span>
-              </div>
+          <div className="relative">
+            <Separator />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-white px-4 text-sm text-gray-700 font-medium">or</span>
             </div>
+          </div>
 
-          {/* 이메일/비밀번호 폼 */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div className="space-y-2">
@@ -138,8 +125,8 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
               <Label htmlFor="email" className="text-sm font-medium">
                 Email Address
               </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                 <Input
                   id="email"
                   type="email"
@@ -157,7 +144,7 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
                 Password
               </Label>
               <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                 <Input
                   id="password"
                   type="password"
@@ -202,7 +189,6 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
             </Button>
           </form>
 
-          {/* 모드 전환 */}
           <div className="text-center pt-4">
             <p className="text-sm text-gray-800">
               {mode === 'login' 
@@ -224,3 +210,5 @@ export const AuthModal = ({ open, onOpenChange, initialMode = 'login' }: AuthMod
     </Dialog>
   );
 };
+
+

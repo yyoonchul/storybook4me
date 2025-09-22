@@ -3,8 +3,7 @@ import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { User, Settings, CreditCard, LogOut } from "lucide-react";
-import { useAuth } from "../../lib/auth";
-import { AuthModal } from "../AuthModal";
+import { useAuth, AuthModal } from "../../../features/auth";
 import { useState } from "react";
 
 const Header = () => {
