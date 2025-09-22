@@ -24,17 +24,17 @@
 
 ## 📋 **테이블 스키마**
 
-### **1. `profiles` - 사용자 프로필 테이블**
+### **1. `profiles` - 사용자 프로필 테이블 (Clerk 단일 인증 기준)**
 
 > **📝 설명:** Supabase의 인증 시스템(`auth.users`)과 직접 연결되는 테이블입니다. 앱 내에서 필요한 사용자 추가 정보와 다른 모든 데이터의 소유권을 관리하는 **가장 중요한 허브 테이블**입니다.
 
-> **🔒 RLS 정책:** 사용자는 자신의 프로필만 보고 수정할 수 있습니다.
+> **🔒 RLS 정책:** 사용자는 자신의 프로필만 보고 수정할 수 있습니다. Clerk 토큰의 `sub`를 사용합니다.
 
 #### **📋 테이블 스키마**
 
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
-| `id` | `UUID` | `PRIMARY KEY`, `REFERENCES auth.users(id)` | auth.users의 id와 1:1 관계. RLS의 핵심 |
+| `id` | `TEXT` | `PRIMARY KEY` | Clerk User ID (JWT `sub`) |
 | `updated_at` | `TIMESTAMPTZ` | `DEFAULT NOW()` | 마지막 수정 시간 |
 | `full_name` | `TEXT` | - | 사용자 이름 |
 | `avatar_url` | `TEXT` | - | 프로필 이미지 URL |
@@ -50,14 +50,14 @@
 -- RLS 활성화
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 정책 생성
+-- 정책 생성 (Clerk JWT sub 사용)
 CREATE POLICY "Users can view own profile" 
   ON public.profiles FOR SELECT 
-  USING (auth.uid() = id);
+  USING (id = auth.jwt()->>'sub');
 
 CREATE POLICY "Users can update own profile" 
   ON public.profiles FOR UPDATE 
-  USING (auth.uid() = id);
+  USING (id = auth.jwt()->>'sub');
 ```
 
 
@@ -74,7 +74,7 @@ CREATE POLICY "Users can update own profile"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 캐릭터 고유 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 소유자 ID (RLS 핵심) |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 소유자 ID (Clerk sub) |
 | `character_name` | `TEXT` | `NOT NULL` | 캐릭터 이름 |
 | `description` | `TEXT` | - | 캐릭터 설명 |
 | `visual_features` | `TEXT` | - | 외모 정보 (이미지 생성용) |
@@ -96,22 +96,22 @@ ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
 -- 1. 조회: 자신의 캐릭터 + 프리셋 캐릭터
 CREATE POLICY "Users can view own and preset characters" 
   ON public.characters FOR SELECT 
-  USING (auth.uid() = user_id OR is_preset = true);
+  USING (user_id = auth.jwt()->>'sub' OR is_preset = true);
 
 -- 2. 삽입: 자신의 캐릭터만 (프리셋은 시스템에서만 생성)
 CREATE POLICY "Users can insert own characters" 
   ON public.characters FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (user_id = auth.jwt()->>'sub');
 
 -- 3. 수정: 자신의 캐릭터만 (프리셋은 수정 불가)
 CREATE POLICY "Users can update own characters" 
   ON public.characters FOR UPDATE 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 
 -- 4. 삭제: 자신의 캐릭터만 (프리셋은 삭제 불가)
 CREATE POLICY "Users can delete own characters" 
   ON public.characters FOR DELETE 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 
 ---
@@ -127,7 +127,7 @@ CREATE POLICY "Users can delete own characters"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 동화책 고유 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 소유자 ID (RLS 핵심) |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 소유자 ID (Clerk sub) |
 | `title` | `TEXT` | - | 동화책 제목 |
 | `cover_image_url` | `TEXT` | - | 표지 이미지 URL |
 | `is_public` | `BOOLEAN` | `DEFAULT FALSE` | 공개 여부 (Explore 페이지 표시) |
@@ -151,7 +151,7 @@ ALTER TABLE public.storybooks ENABLE ROW LEVEL SECURITY;
 -- 정책 생성
 CREATE POLICY "Users can view own storybooks" 
   ON public.storybooks FOR SELECT 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 
 CREATE POLICY "Users can view public storybooks" 
   ON public.storybooks FOR SELECT 
@@ -159,15 +159,15 @@ CREATE POLICY "Users can view public storybooks"
 
 CREATE POLICY "Users can insert own storybooks" 
   ON public.storybooks FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (user_id = auth.jwt()->>'sub');
 
 CREATE POLICY "Users can update own storybooks" 
   ON public.storybooks FOR UPDATE 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 
 CREATE POLICY "Users can delete own storybooks" 
   ON public.storybooks FOR DELETE 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 ---
 
@@ -203,7 +203,7 @@ ALTER TABLE public.pages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view pages of own storybooks" 
   ON public.pages FOR SELECT 
   USING (storybook_id IN (
-    SELECT id FROM public.storybooks WHERE user_id = auth.uid()
+    SELECT id FROM public.storybooks WHERE user_id = auth.jwt()->>'sub'
   ));
 
 CREATE POLICY "Users can view pages of public storybooks" 
@@ -215,19 +215,19 @@ CREATE POLICY "Users can view pages of public storybooks"
 CREATE POLICY "Users can insert pages to own storybooks" 
   ON public.pages FOR INSERT 
   WITH CHECK (storybook_id IN (
-    SELECT id FROM public.storybooks WHERE user_id = auth.uid()
+    SELECT id FROM public.storybooks WHERE user_id = auth.jwt()->>'sub'
   ));
 
 CREATE POLICY "Users can update pages of own storybooks" 
   ON public.pages FOR UPDATE 
   USING (storybook_id IN (
-    SELECT id FROM public.storybooks WHERE user_id = auth.uid()
+    SELECT id FROM public.storybooks WHERE user_id = auth.jwt()->>'sub'
   ));
 
 CREATE POLICY "Users can delete pages of own storybooks" 
   ON public.pages FOR DELETE 
   USING (storybook_id IN (
-    SELECT id FROM public.storybooks WHERE user_id = auth.uid()
+    SELECT id FROM public.storybooks WHERE user_id = auth.jwt()->>'sub'
   ));
 ```
 
@@ -244,7 +244,7 @@ CREATE POLICY "Users can delete pages of own storybooks"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 좋아요 고유 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (Clerk sub) |
 | `storybook_id` | `UUID` | `NOT NULL`, `REFERENCES storybooks(id)` | 동화책 ID |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, `DEFAULT NOW()` | 생성 시간 |
 
@@ -257,7 +257,7 @@ ALTER TABLE public.storybook_likes ENABLE ROW LEVEL SECURITY;
 -- 정책 생성
 CREATE POLICY "Users can manage own likes" 
   ON public.storybook_likes FOR ALL 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 
 ---
@@ -273,7 +273,7 @@ CREATE POLICY "Users can manage own likes"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 구독 고유 ID |
-| `user_id` | `UUID` | `UNIQUE`, `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (1:1 관계) |
+| `user_id` | `TEXT` | `UNIQUE`, `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (Clerk sub, 1:1) |
 | `stripe_customer_id` | `TEXT` | `UNIQUE` | Stripe 고객 ID |
 | `stripe_subscription_id` | `TEXT` | `UNIQUE` | Stripe 구독 ID |
 | `status` | `VARCHAR(50)` | - | 구독 상태 (trialing, active, canceled, past_due) |
@@ -294,11 +294,11 @@ ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 -- 정책 생성
 CREATE POLICY "Users can view own subscription" 
   ON public.subscriptions FOR SELECT 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 
 CREATE POLICY "Users can update own subscription" 
   ON public.subscriptions FOR UPDATE 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 
 ---
@@ -329,7 +329,7 @@ CREATE POLICY "Users can update own subscription"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 세션 고유 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (Clerk sub) |
 | `storybook_id` | `UUID` | `REFERENCES storybooks(id)`, `ON DELETE CASCADE` | 동화책 ID (NULL 허용) |
 | `session_name` | `TEXT` | - | 세션 이름 |
 | `context` | `JSONB` | - | 채팅 컨텍스트 (현재 페이지, 스토리 정보 등) |
@@ -345,7 +345,7 @@ ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
 -- 정책 생성
 CREATE POLICY "Users can manage own chat sessions" 
   ON public.chat_sessions FOR ALL 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 
 ---
@@ -362,7 +362,7 @@ CREATE POLICY "Users can manage own chat sessions"
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 메시지 고유 ID |
 | `session_id` | `UUID` | `NOT NULL`, `REFERENCES chat_sessions(id)` | 채팅 세션 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (Clerk sub) |
 | `role` | `VARCHAR(20)` | `NOT NULL` | 메시지 역할 (user, assistant, system) |
 | `content` | `TEXT` | `NOT NULL` | 메시지 내용 |
 | `suggestions` | `JSONB` | - | AI 제안사항 |
@@ -377,7 +377,7 @@ ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 -- 정책 생성
 CREATE POLICY "Users can manage own chat messages" 
   ON public.chat_messages FOR ALL 
-  USING (auth.uid() = user_id);
+  USING (user_id = auth.jwt()->>'sub');
 ```
 
 ---
