@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.features.waitlist import router as waitlist_router
+from app.features.auth.api import router as auth_router
 
 
 def create_app() -> FastAPI:
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     
     # Include routers
     app.include_router(waitlist_router, prefix="/api")
+    app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     
     # Health check route
     @app.get("/")

@@ -20,7 +20,7 @@ import TermsPage from "./pages/info/TermsPage";
 import PrivacyPage from "./pages/info/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import { LandingPage } from "@/features/landing";
-import { AuthProvider } from "./shared/lib/auth";
+// Clerk is provided at root in main.tsx; remove legacy AuthProvider
 import { useScrollToTop } from "./shared/hooks/useScrollToTop";
 
 
@@ -32,8 +32,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AuthProvider>
-          <BrowserRouter>
+        <BrowserRouter>
             <ScrollToTopWrapper />
             <Routes>
               <Route path="/" element={<MainPage />} />
@@ -56,8 +55,7 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

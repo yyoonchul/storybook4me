@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     
+    # Clerk 설정 (JWT 검증용)
+    clerk_domain: str
+    clerk_audience: str
+    
     class Config:
         env_file = ".env"
         extra = "ignore"  # Ignore extra environment variables
