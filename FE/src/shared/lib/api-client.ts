@@ -57,13 +57,3 @@ export const apiClient = {
     return response.json();
   },
 };
-
-// Authed API client (Clerk token injected automatically)
-// Usage: const client = await createAuthedApiClient(getTokenFn); client.post('endpoint', body)
-export async function createAuthedApiClient(getToken: () => Promise<string | null>) {
-  const token = await getToken();
-  return {
-    get: async <T>(endpoint: string): Promise<T> => apiClient.get<T>(endpoint, token || undefined),
-    post: async <T>(endpoint: string, body: any): Promise<T> => apiClient.post<T>(endpoint, body, token || undefined),
-  };
-}

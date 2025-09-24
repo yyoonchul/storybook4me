@@ -2,6 +2,9 @@ import { Toaster } from "./shared/components/ui/toaster";
 import { Toaster as Sonner } from "./shared/components/ui/sonner";
 import { TooltipProvider } from "./shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useSession } from "@clerk/clerk-react";
+import { setAuthTokenProvider } from "@/shared/lib/api-client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainPage from "./pages/MainPage";
 import WelcomePage from "./pages/WelcomePage";
@@ -26,6 +29,14 @@ import { useScrollToTop } from "./shared/hooks/useScrollToTop";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const { session } = useSession();
+
+  // Register global token provider with Clerk template for backend verification
+  // Adjust template name if your Clerk JWT template differs
+  useEffect(() => {
+    setAuthTokenProvider(() => session?.getToken({ template: 'storybook4me' }) ?? Promise.resolve(null));
+  }, [session]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
