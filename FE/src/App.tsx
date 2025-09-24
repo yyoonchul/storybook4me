@@ -12,7 +12,6 @@ import BookViewerPage from "./pages/BookViewerPage";
 import AccountPage from "./pages/settings/AccountPage";
 import BillingPage from "./pages/settings/BillingPage";
 import CharacterFormPage from "./pages/family/CharacterFormPage";
-import FamilyPage from "./pages/FamilyPage";
 import AboutPage from "./pages/info/AboutPage";
 import FAQPage from "./pages/info/FAQPage";
 import ContactPage from "./pages/info/ContactPage";
@@ -37,8 +36,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<MainPage />} />
               <Route path="/welcome" element={<WelcomePage />} />
-              {/* Removed standalone Bookshelf/Family routes; handled by main page section scroll */}
-              <Route path="/family" element={<FamilyPage />} />
+              {/* Family handled within MainPage's section; no standalone /family route */}
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/studio" element={<StudioPage />} />
