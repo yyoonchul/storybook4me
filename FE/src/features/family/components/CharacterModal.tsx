@@ -8,6 +8,7 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Upload, Trash2 } from "lucide-react";
+import { familyApi } from "../api";
 
 interface Character {
   id?: string;
@@ -31,23 +32,14 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
   const [imagePreview, setImagePreview] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const isEditing = !!characterId;
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<Character>({
     defaultValues: { name: "", description: "", appearance: "", image: "" }
   });
 
   useEffect(() => {
-    if (isEditing && characterId) {
-      const mockCharacters: Record<string, Character> = {
-        "1": { id: "1", name: "Emma", description: "A brave 8-year-old with curly brown hair who loves adventures", appearance: "Curly brown hair, bright green eyes, always wearing her favorite red cape", image: "/cover.png" },
-        "2": { id: "2", name: "Max", description: "A curious 6-year-old boy who dreams of being a space explorer", appearance: "Short blonde hair, blue eyes, usually in his astronaut costume", image: "/cover.png" }
-      };
-      const character = mockCharacters[characterId];
-      if (character) {
-        form.reset(character);
-        setImagePreview(character.image || "");
-      }
-    } else if (initialData) {
+    if (initialData) {
       const preset = {
         name: initialData.name || "",
         description: initialData.description || "",
@@ -56,6 +48,23 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
       };
       form.reset(preset);
       setImagePreview(preset.image || "");
+    } else if (isEditing && characterId) {
+      // Fallback: fetch character details if no initialData was provided
+      setIsLoading(true);
+      familyApi.getCharacter(characterId)
+        .then((res) => {
+          const c = res.character;
+          const mapped: Character = {
+            id: c.id,
+            name: c.character_name || "",
+            description: c.description || "",
+            appearance: (c as any).visual_features || "",
+            image: c.image_url || "",
+          };
+          form.reset(mapped);
+          setImagePreview(mapped.image || "");
+        })
+        .finally(() => setIsLoading(false));
     } else {
       form.reset({ name: "", description: "", appearance: "", image: "" });
       setImagePreview("");
@@ -180,7 +189,7 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>Close</Button>
                 {!readOnly ? (
-                  <Button type="submit" className="magic-gradient">{isEditing ? "Save Changes" : "Create Character"}</Button>
+                  <Button type="submit" className="magic-gradient" disabled={isLoading}>{isEditing ? "Save Changes" : "Create Character"}</Button>
                 ) : null}
               </div>
             </div>

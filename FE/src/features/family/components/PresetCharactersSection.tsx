@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { usePresetCharacters } from '../hooks/usePresetCharacters';
 import { CharacterCard } from './CharacterCard';
 import CharacterModal from './CharacterModal';
+import { Card, CardContent } from '@/shared/components/ui/card';
 
 export const PresetCharactersSection = () => {
   const { presets, isLoading, error } = usePresetCharacters();
@@ -31,10 +32,31 @@ export const PresetCharactersSection = () => {
   }, [presets]);
 
   if (isLoading) {
+    const loadingGroups = [
+      { title: 'The Starlings' },
+      { title: 'The Novas' },
+      { title: 'The Solis' },
+    ];
     return (
       <section className="mt-12">
-        <h2 className="text-2xl font-bold mb-4">Preset Characters</h2>
-        <p className="text-muted-foreground">Loading preset characters…</p>
+        {loadingGroups.map((group) => (
+          <div key={group.title} className="mb-10">
+            <h3 className="text-xl font-semibold mb-4">{group.title}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={`preset-skel-${group.title}-${i}`}>
+                  <CardContent className="p-0">
+                    <div className="h-48 w-full bg-muted animate-pulse" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
     );
   }

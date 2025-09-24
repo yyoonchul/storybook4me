@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SignedIn } from '@/features/auth';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent } from '@/shared/components/ui/card';
@@ -8,7 +8,9 @@ import CharacterModal from '@/features/family/components/CharacterModal';
 import { PresetCharactersSection } from './PresetCharactersSection';
 import { CharacterCard } from './CharacterCard';
 import { useCreateCharacter } from '../hooks/useCreateCharacter';
-import { CreateCharacterRequest } from '../types';
+import { familyApi } from '../api';
+import { useSession } from '@clerk/clerk-react';
+import { CreateCharacterRequest, UpdateCharacterRequest } from '../types';
 
 type FamilyMember = {
   id: string;
@@ -22,24 +24,85 @@ export const FamilySection = () => {
   const { createCharacter } = useCreateCharacter();
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | undefined>();
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
-    { id: '1', name: 'Emma', avatar: '/cover.png', description: 'A brave 8-year-old with curly brown hair who loves adventures', appearance: 'Curly brown hair, bright green eyes, always wearing her favorite red cape' },
-    { id: '2', name: 'Max', avatar: '/cover.png', description: 'A curious 6-year-old boy who dreams of being a space explorer', appearance: 'Short blonde hair, blue eyes, usually in his astronaut costume' },
-  ]);
+  const [selectedInitialData, setSelectedInitialData] = useState<Partial<{ name: string; description?: string; appearance?: string; image?: string }>>();
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { session } = useSession();
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const token = await session?.getToken({ template: 'storybook4me' });
+        const res = await familyApi.getCharacters({}, token || undefined);
+        if (!mounted) return;
+        const mapped: FamilyMember[] = res.characters.map((c) => ({
+          id: c.id,
+          name: c.character_name,
+          description: c.description,
+          appearance: c.visual_features,
+          avatar: c.image_url || '/cover.png',
+        }));
+        setFamilyMembers(mapped);
+      } catch (e) {
+        if (!mounted) return;
+        const msg = e instanceof Error ? e.message : 'Failed to load characters';
+        setLoadError(msg);
+      } finally {
+        if (!mounted) return;
+        setIsLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, [session]);
 
   const handleAddCharacter = () => {
     setSelectedCharacterId(undefined);
     setCharacterModalOpen(true);
   };
 
-  const handleEditCharacter = (characterId: string) => {
+  const handleEditCharacter = async (characterId: string) => {
+    const member = familyMembers.find(m => m.id === characterId);
+    if (member) {
+      setSelectedInitialData({
+        name: member.name,
+        description: member.description,
+        appearance: member.appearance,
+        image: member.avatar,
+      });
+    } else {
+      setSelectedInitialData(undefined);
+    }
     setSelectedCharacterId(characterId);
     setCharacterModalOpen(true);
   };
 
   const handleSaveCharacter = async (character: any) => {
     if (character.id) {
-      setFamilyMembers(prev => prev.map(member => member.id === character.id ? { ...member, ...character, avatar: character.image || member.avatar } : member));
+      // Update via API
+      const update: UpdateCharacterRequest = {
+        character_name: character.name,
+        description: character.description,
+        visual_features: character.appearance,
+        image_url: character.image,
+      };
+      try {
+        const res = await familyApi.updateCharacter(character.id, update);
+        const c = res.character;
+        setFamilyMembers(prev => prev.map(member => member.id === c.id ? {
+          id: c.id,
+          name: c.character_name,
+          description: c.description,
+          appearance: c.visual_features,
+          avatar: c.image_url || '/cover.png',
+        } : member));
+      } catch (e) {
+        // ignore for now or attach toast
+      }
     } else {
       const payload: CreateCharacterRequest = {
         character_name: character.name,
@@ -62,8 +125,13 @@ export const FamilySection = () => {
     }
   };
 
-  const handleDeleteCharacter = (characterId: string) => {
-    setFamilyMembers(prev => prev.filter(member => member.id !== characterId));
+  const handleDeleteCharacter = async (characterId: string) => {
+    try {
+      await familyApi.deleteCharacter(characterId);
+      setFamilyMembers(prev => prev.filter(member => member.id !== characterId));
+    } catch (e) {
+      // ignore for now or attach toast
+    }
   };
 
   return (
@@ -77,17 +145,28 @@ export const FamilySection = () => {
           </Button>
         </div>
 
+        {loadError && (
+          <div className="text-sm text-red-600 mb-2">{loadError}</div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {familyMembers.map((member) => (
-            <CharacterCard
-              key={member.id}
-              id={member.id}
-              name={member.name}
-              description={member.description}
-              imageUrl={member.avatar}
-              onClick={handleEditCharacter}
-            />
-          ))}
+          {isLoading && familyMembers.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={`skeleton-${i}`}>
+                <CardContent className="h-48 animate-pulse bg-muted" />
+              </Card>
+            ))
+          ) : (
+            familyMembers.map((member) => (
+              <CharacterCard
+                key={member.id}
+                id={member.id}
+                name={member.name}
+                description={member.description}
+                imageUrl={member.avatar}
+                onClick={handleEditCharacter}
+              />
+            ))
+          )}
         </div>
 
         <div className="mt-6">
@@ -115,6 +194,7 @@ export const FamilySection = () => {
           onSave={handleSaveCharacter}
           onDelete={handleDeleteCharacter}
           readOnly={false}
+          initialData={selectedInitialData}
         />
       </div>
     </SignedIn>

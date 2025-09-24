@@ -184,15 +184,16 @@ class CharacterService:
                 # No fields to update, return existing character
                 return existing_char
             
-            response = supabase.table("characters").update(update_data).eq("id", character_id).select().single().execute()
-            
-            if not response.data:
+            response = supabase.table("characters").update(update_data).eq("id", character_id).execute()
+
+            if not response.data or not isinstance(response.data, list):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to update character"
                 )
-            
-            character = Character(**response.data)
+
+            updated_row = response.data[0]
+            character = Character(**updated_row)
             logger.info("Updated character %s for user %s", character_id, user_id)
             return character
             

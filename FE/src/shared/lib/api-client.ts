@@ -56,4 +56,30 @@ export const apiClient = {
 
     return response.json();
   },
+
+  async put<T>(endpoint: string, body: any, token?: string): Promise<T> {
+    const url = getApiUrl(endpoint);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const resolvedToken = token ?? (authTokenProvider ? await authTokenProvider() : undefined);
+    if (resolvedToken) headers['Authorization'] = `Bearer ${resolvedToken}`;
+    const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error((errorData as any).detail || `Request failed (${response.status})`);
+    }
+    return response.json();
+  },
+
+  async delete<T>(endpoint: string, token?: string): Promise<T> {
+    const url = getApiUrl(endpoint);
+    const headers: Record<string, string> = {};
+    const resolvedToken = token ?? (authTokenProvider ? await authTokenProvider() : undefined);
+    if (resolvedToken) headers['Authorization'] = `Bearer ${resolvedToken}`;
+    const response = await fetch(url, { method: 'DELETE', headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error((errorData as any).detail || `Request failed (${response.status})`);
+    }
+    return response.json();
+  },
 };
