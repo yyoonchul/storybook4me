@@ -7,6 +7,8 @@ import { Plus } from 'lucide-react';
 import CharacterModal from '@/features/family/components/CharacterModal';
 import { PresetCharactersSection } from './PresetCharactersSection';
 import { CharacterCard } from './CharacterCard';
+import { useCreateCharacter } from '../hooks/useCreateCharacter';
+import { CreateCharacterRequest } from '../types';
 
 type FamilyMember = {
   id: string;
@@ -17,6 +19,7 @@ type FamilyMember = {
 };
 
 export const FamilySection = () => {
+  const { createCharacter } = useCreateCharacter();
   const [characterModalOpen, setCharacterModalOpen] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | undefined>();
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
@@ -34,12 +37,28 @@ export const FamilySection = () => {
     setCharacterModalOpen(true);
   };
 
-  const handleSaveCharacter = (character: any) => {
+  const handleSaveCharacter = async (character: any) => {
     if (character.id) {
       setFamilyMembers(prev => prev.map(member => member.id === character.id ? { ...member, ...character, avatar: character.image || member.avatar } : member));
     } else {
-      const newCharacter: FamilyMember = { id: Date.now().toString(), name: character.name, description: character.description, appearance: character.appearance, avatar: character.image || '/cover.png' };
-      setFamilyMembers(prev => [...prev, newCharacter]);
+      const payload: CreateCharacterRequest = {
+        character_name: character.name,
+        description: character.description,
+        visual_features: character.appearance,
+        image_url: character.image,
+      };
+      const res = await createCharacter(payload);
+      if (res?.character) {
+        const created = res.character;
+        const newMember: FamilyMember = {
+          id: created.id,
+          name: created.character_name,
+          description: created.description,
+          appearance: created.visual_features,
+          avatar: created.image_url || '/cover.png',
+        };
+        setFamilyMembers(prev => [...prev, newMember]);
+      }
     }
   };
 
