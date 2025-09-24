@@ -28,7 +28,7 @@ export const apiClient = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Request failed');
+      throw new Error((errorData as any).detail || `Request failed (${response.status})`);
     }
 
     return response.json();
@@ -51,7 +51,7 @@ export const apiClient = {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Request failed');
+      throw new Error((errorData as any).detail || `Request failed (${response.status})`);
     }
 
     return response.json();

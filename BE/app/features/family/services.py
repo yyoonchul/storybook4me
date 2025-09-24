@@ -128,15 +128,17 @@ class CharacterService:
                 "is_preset": False  # User-created characters are never presets
             }
             
-            response = supabase.table("characters").insert(insert_data).select().single().execute()
-            
-            if not response.data:
+            # Supabase Python v2: insert().execute() returns a list in data
+            response = supabase.table("characters").insert(insert_data).execute()
+
+            if not response.data or not isinstance(response.data, list):
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to create character"
                 )
             
-            character = Character(**response.data)
+            created_row = response.data[0]
+            character = Character(**created_row)
             logger.info("Created character %s for user %s", character.id, user_id)
             return character
             
