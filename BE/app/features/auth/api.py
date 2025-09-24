@@ -34,18 +34,22 @@ async def get_user_profile(current_user_id: str = Depends(get_current_user_id), 
             logger.info("Profile not found for user_id=%s", user_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
 
-        # Optional user-facing basics from token
-        email = current_user.get("email")
-        first_name = current_user.get("given_name", "")
-        last_name = current_user.get("family_name", "")
-        full_name = f"{first_name} {last_name}".strip()
+        # Validate that the profile ID matches the token's user_id
+        if profile.get("id") != user_id:
+            logger.error("Profile ID mismatch: token user_id=%s, profile id=%s", user_id, profile.get("id"))
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Profile ID mismatch")
 
         logger.debug("Profile fetch succeeded for user_id=%s", user_id)
         return {
-            "user_id": user_id,
-            "email": email,
-            "full_name": full_name,
-            "profile": profile,
+            "id": profile.get("id"),
+            "full_name": profile.get("full_name"),
+            "email": profile.get("email"),
+            "avatar_url": profile.get("avatar_url"),
+            "credits_used": profile.get("credits_used"),
+            "storybooks_created": profile.get("storybooks_created"),
+            "image_regenerations": profile.get("image_regenerations"),
+            "created_at": profile.get("created_at"),
+            "updated_at": profile.get("updated_at"),
         }
 
     except HTTPException:

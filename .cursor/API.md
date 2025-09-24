@@ -18,16 +18,18 @@
 ### **2. 인증 API (Authentication)**
 * **기능:** 사용자의 회원가입, 로그인/로그아웃 등 계정 접근을 관리합니다. (Clerk 사용)
 * **사용 페이지:** `AuthModal`, `Header` 컴포넌트
-* **구현 상태:** ❌ 미구현
+* **구현 상태:** ✅ Clerk 프론트엔드 인증 사용 (백엔드 직접 구현 불필요)
 
-| **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/auth/signup` | `POST` | 이메일, 비밀번호로 신규 계정을 생성합니다. | `{ email, password, name }` | `{ user: { id, email, name }, token }` |
-| `/api/auth/login` | `POST` | 이메일, 비밀번호로 로그인하여 인증 토큰을 발급받습니다. | `{ email, password }` | `{ user: { id, email, name, avatar }, token }` |
-| `/api/auth/logout` | `POST` | 사용자 세션을 종료하고 로그아웃 처리합니다. | `{ token }` | `{ message: "Logged out successfully" }` |
-| `/api/auth/social/google` | `GET` | 구글 소셜 로그인을 시작합니다. | - | Redirect to Google OAuth |
-| `/api/auth/social/apple` | `GET` | 애플 소셜 로그인을 시작합니다. | - | Redirect to Apple OAuth |
-| `/api/auth/me` | `GET` | 현재 로그인한 사용자 정보를 조회합니다. | `Authorization: Bearer {token}` | `{ user: { id, email, name, avatar } }` |
+| **Endpoint** | **Method** | **설명** | **Request Body** | **Response** | **구현 상태** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `/api/auth/signup` | `POST` | 이메일, 비밀번호로 신규 계정을 생성합니다. | `{ email, password, name }` | `{ user: { id, email, name }, token }` | ❌ Clerk 프론트엔드 처리 |
+| `/api/auth/login` | `POST` | 이메일, 비밀번호로 로그인하여 인증 토큰을 발급받습니다. | `{ email, password }` | `{ user: { id, email, name, avatar }, token }` | ❌ Clerk 프론트엔드 처리 |
+| `/api/auth/logout` | `POST` | 사용자 세션을 종료하고 로그아웃 처리합니다. | `{ token }` | `{ message: "Logged out successfully" }` | ❌ Clerk 프론트엔드 처리 |
+| `/api/auth/social/google` | `GET` | 구글 소셜 로그인을 시작합니다. | - | Redirect to Google OAuth | ❌ Clerk 프론트엔드 처리 |
+| `/api/auth/social/apple` | `GET` | 애플 소셜 로그인을 시작합니다. | - | Redirect to Apple OAuth | ❌ Clerk 프론트엔드 처리 |
+| `/api/auth/me` | `GET` | 현재 로그인한 사용자 정보를 조회합니다. | `Authorization: Bearer {token}` | `{ user: { id, email, name, avatar } }` | ✅ 구현됨 (Clerk JWT 검증) |
+
+**참고:** Clerk를 사용하므로 회원가입/로그인/로그아웃은 프론트엔드에서 Clerk SDK로 처리됩니다. 백엔드는 JWT 토큰 검증과 사용자 정보 조회만 담당합니다.
 
 ---
 
