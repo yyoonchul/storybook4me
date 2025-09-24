@@ -2,6 +2,9 @@ import { Toaster } from "./shared/components/ui/toaster";
 import { Toaster as Sonner } from "./shared/components/ui/sonner";
 import { TooltipProvider } from "./shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useSession } from "@clerk/clerk-react";
+import { setAuthTokenProvider } from "@/shared/lib/api-client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainPage from "./pages/MainPage";
 import WelcomePage from "./pages/WelcomePage";
@@ -12,7 +15,6 @@ import BookViewerPage from "./pages/BookViewerPage";
 import AccountPage from "./pages/settings/AccountPage";
 import BillingPage from "./pages/settings/BillingPage";
 import CharacterFormPage from "./pages/family/CharacterFormPage";
-import FamilyPage from "./pages/FamilyPage";
 import AboutPage from "./pages/info/AboutPage";
 import FAQPage from "./pages/info/FAQPage";
 import ContactPage from "./pages/info/ContactPage";
@@ -27,6 +29,14 @@ import { useScrollToTop } from "./shared/hooks/useScrollToTop";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const { session } = useSession();
+
+  // Register global token provider with Clerk template for backend verification
+  // Adjust template name if your Clerk JWT template differs
+  useEffect(() => {
+    setAuthTokenProvider(() => session?.getToken({ template: 'storybook4me' }) ?? Promise.resolve(null));
+  }, [session]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -37,8 +47,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<MainPage />} />
               <Route path="/welcome" element={<WelcomePage />} />
-              {/* Removed standalone Bookshelf/Family routes; handled by main page section scroll */}
-              <Route path="/family" element={<FamilyPage />} />
+              {/* Family handled within MainPage's section; no standalone /family route */}
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/studio" element={<StudioPage />} />

@@ -6,6 +6,7 @@ import { Card, CardContent } from "../shared/components/ui/card";
 import { Separator } from "../shared/components/ui/separator";
 import { Input } from "../shared/components/ui/input";
 import { Switch } from "../shared/components/ui/switch";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../shared/components/ui/accordion";
 import { SignedIn, SignedOut, useUser, useClerk } from "@/features/auth";
 import { 
   AlertDialog, 
@@ -21,7 +22,7 @@ import {
 import { Sparkles, Plus, ArrowRight, Edit3, Trash2, Lock, Unlock, Save, X, Globe } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
-import CharacterModal from "../shared/components/CharacterModal";
+import { FamilySection } from "@/features/family";
 // Clerk is the source of truth for auth state; remove legacy auth usage
 
 // Mock data - replace with real data later
@@ -34,22 +35,9 @@ const mockExploreBooks = [
   { id: 6, title: "Princess Castle", cover: "/cover.png" },
 ];
 
-const mockFamilyMembers = [
-  { 
-    id: "1", 
-    name: "Emma", 
-    avatar: "/cover.png",
-    description: "A brave 8-year-old with curly brown hair who loves adventures",
-    appearance: "Curly brown hair, bright green eyes, always wearing her favorite red cape"
-  },
-  { 
-    id: "2", 
-    name: "Max", 
-    avatar: "/cover.png",
-    description: "A curious 6-year-old boy who dreams of being a space explorer",
-    appearance: "Short blonde hair, blue eyes, usually in his astronaut costume"
-  },
-];
+// Family section is encapsulated in features/family/FamilySection
+
+// presets are fetched via PresetCharactersSection
 
 const mockBookshelf = [
   { id: 1, title: "Chloe's Space Adventure", cover: "/cover.png", isPublic: false },
@@ -59,13 +47,10 @@ const mockBookshelf = [
 
 const MainPage = () => {
   const [storyPrompt, setStoryPrompt] = useState("");
-  const [characterModalOpen, setCharacterModalOpen] = useState(false);
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | undefined>();
   const [isEditMode, setIsEditMode] = useState(false);
   const [bookshelfData, setBookshelfData] = useState(mockBookshelf);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [storyToDelete, setStoryToDelete] = useState<number | null>(null);
-  const [familyMembers, setFamilyMembers] = useState(mockFamilyMembers);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   // Typewriter placeholder state
@@ -170,40 +155,7 @@ const MainPage = () => {
     navigate(`/studio?prompt=${encodeURIComponent(storyPrompt)}`);
   };
 
-  const handleAddCharacter = () => {
-    setSelectedCharacterId(undefined);
-    setCharacterModalOpen(true);
-  };
-
-  const handleEditCharacter = (characterId: string) => {
-    setSelectedCharacterId(characterId);
-    setCharacterModalOpen(true);
-  };
-
-  const handleSaveCharacter = (character: any) => {
-    if (character.id) {
-      // Edit existing character
-      setFamilyMembers(prev => 
-        prev.map(member => 
-          member.id === character.id 
-            ? { ...member, ...character, avatar: character.image || member.avatar }
-            : member
-        )
-      );
-    } else {
-      // Add new character
-      const newCharacter = {
-        ...character,
-        id: Date.now().toString(),
-        avatar: character.image || "/cover.png"
-      };
-      setFamilyMembers(prev => [...prev, newCharacter]);
-    }
-  };
-
-  const handleDeleteCharacter = (characterId: string) => {
-    setFamilyMembers(prev => prev.filter(member => member.id !== characterId));
-  };
+  // Family handlers are encapsulated inside FamilySection
 
   // Bookshelf edit handlers
   const handleToggleVisibility = (storyId: number) => {
@@ -456,34 +408,8 @@ const MainPage = () => {
                 <Separator className="my-8 opacity-30" />
               </SignedIn>
 
-              {/* Family Section - Only if logged in */}
-              <SignedIn>
-                <div id="family" className="scroll-mt-20">
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-bold">My Family</h2>
-                    <Button variant="outline" size="sm" onClick={handleAddCharacter}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Character
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {familyMembers.map((member) => (
-                      <Card 
-                        key={member.id} 
-                        className="hover-lift cursor-pointer" 
-                        onClick={() => handleEditCharacter(member.id)}
-                      >
-                        <CardContent className="p-4 text-center">
-                          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-200 overflow-hidden">
-                            <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                          </div>
-                          <p className="font-medium">{member.name}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </SignedIn>
+              {/* Family Section - encapsulated */}
+              <FamilySection />
 
               <SignedIn>
                 <Separator className="my-8 opacity-30" />
@@ -518,15 +444,6 @@ const MainPage = () => {
       </main>
 
       <Footer />
-
-      {/* Character Modal */}
-      <CharacterModal
-        isOpen={characterModalOpen}
-        onClose={() => setCharacterModalOpen(false)}
-        characterId={selectedCharacterId}
-        onSave={handleSaveCharacter}
-        onDelete={handleDeleteCharacter}
-      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -9,7 +9,7 @@ const getBaseUrl = () => {
       return 'https://storybook-preview.up.railway.app';
     case 'local':
     default:
-      return 'http://0.0.0.0:8000';
+      return 'http://localhost:8000';
   }
 };
 

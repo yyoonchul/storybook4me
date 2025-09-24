@@ -38,15 +38,111 @@
 * **사용 페이지:** `FamilyPage`, `CharacterFormPage`, `CharacterModal`, `MainPage`
 * **구현 상태:** ❌ 미구현
 
+#### **Request/Response Models**
+
+**Character Model:**
+```typescript
+interface Character {
+  id: string;                    // UUID
+  user_id: string;               // Clerk user ID (sub)
+  character_name: string;        // 캐릭터 이름
+  description?: string;          // 캐릭터 설명
+  visual_features?: string;      // 외모 정보 (이미지 생성용)
+  image_url?: string;           // 캐릭터 이미지 URL
+  personality_traits?: string[]; // 성격 특성 배열
+  likes?: string[];             // 취향 배열
+  additional_info?: object;      // 추가 정보 (나이, 대명사 등)
+  is_preset: boolean;           // 프리셋 캐릭터 여부
+  created_at: string;           // ISO 8601 timestamp
+  updated_at: string;           // ISO 8601 timestamp
+}
+```
+
+**Create Character Request:**
+```typescript
+interface CreateCharacterRequest {
+  character_name: string;        // 필수
+  description?: string;
+  visual_features?: string;
+  image_url?: string;
+  personality_traits?: string[];
+  likes?: string[];
+  additional_info?: {
+    age?: number;
+    pronouns?: string;
+    [key: string]: any;
+  };
+}
+```
+
+**Update Character Request:**
+```typescript
+interface UpdateCharacterRequest {
+  character_name?: string;
+  description?: string;
+  visual_features?: string;
+  image_url?: string;
+  personality_traits?: string[];
+  likes?: string[];
+  additional_info?: {
+    age?: number;
+    pronouns?: string;
+    [key: string]: any;
+  };
+}
+```
+
+**Character List Response:**
+```typescript
+interface CharacterListResponse {
+  characters: Character[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+```
+
+**Single Character Response:**
+```typescript
+interface CharacterResponse {
+  character: Character;
+}
+```
+
+**Preset Characters Response:**
+```typescript
+interface PresetCharactersResponse {
+  presets: Character[];
+}
+```
+
+**Image Upload Response:**
+```typescript
+interface ImageUploadResponse {
+  image_url: string;
+  file_id?: string;
+}
+```
+
+**Delete Response:**
+```typescript
+interface DeleteResponse {
+  message: string;
+  deleted_id: string;
+}
+```
+
+#### **API Endpoints**
+
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
-| `/api/characters` | `GET` | 현재 로그인한 사용자의 모든 '가족' 캐릭터 목록을 불러옵니다. | `Authorization: Bearer {token}` | `{ characters: [{ id, name, description, appearance, imageUrl, createdAt }] }` |
-| `/api/characters` | `POST` | 새로운 가족 캐릭터를 생성하고 저장합니다. | `{ name, description, appearance, image? }` | `{ character: { id, name, description, appearance, imageUrl } }` |
-| `/api/characters/{characterId}` | `GET` | 특정 캐릭터 한 명의 상세 정보를 불러옵니다. | `Authorization: Bearer {token}` | `{ character: { id, name, description, appearance, imageUrl, createdAt } }` |
-| `/api/characters/{characterId}` | `PUT` | 특정 캐릭터의 정보를 수정합니다. | `{ name?, description?, appearance?, image? }` | `{ character: { id, name, description, appearance, imageUrl } }` |
-| `/api/characters/{characterId}` | `DELETE` | 특정 캐릭터를 삭제합니다. | `Authorization: Bearer {token}` | `{ message: "Character deleted successfully" }` |
-| `/api/characters/presets` | `GET` | 북미 문화권에 맞게 미리 설정된 프리셋 가족 캐릭터 목록을 불러옵니다. | - | `{ presets: [{ id, name, description, appearance, imageUrl }] }` |
-| `/api/characters/upload-image` | `POST` | 캐릭터 이미지를 업로드합니다. | `FormData: { image: File }` | `{ imageUrl: "https://..." }` |
+| `/api/family` | `GET` | 현재 로그인한 사용자의 모든 캐릭터 목록을 불러옵니다. | `Authorization: Bearer {token}` | `CharacterListResponse` |
+| `/api/family` | `POST` | 새로운 가족 캐릭터를 생성하고 저장합니다. | `CreateCharacterRequest` + `Authorization: Bearer {token}` | `CharacterResponse` |
+| `/api/family/{characterId}` | `GET` | 특정 캐릭터의 상세 정보를 불러옵니다. | `Authorization: Bearer {token}` | `CharacterResponse` |
+| `/api/family/{characterId}` | `PUT` | 특정 캐릭터의 정보를 수정합니다. | `UpdateCharacterRequest` + `Authorization: Bearer {token}` | `CharacterResponse` |
+| `/api/family/{characterId}` | `DELETE` | 특정 캐릭터를 삭제합니다. | `Authorization: Bearer {token}` | `DeleteResponse` |
+| `/api/family/presets` | `GET` | 프리셋 캐릭터 목록을 불러옵니다. | - | `PresetCharactersResponse` |
+| `/api/family/upload-image` | `POST` | 캐릭터 이미지를 업로드합니다. | `FormData: { image: File }` + `Authorization: Bearer {token}` | `ImageUploadResponse` |
 
 ---
 
