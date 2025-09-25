@@ -147,26 +147,154 @@ interface DeleteResponse {
 ---
 
 ### **4. 내 책장 API (My Bookshelf)**
-* **기능:** 사용자가 만든 개인 동화책 목록을 관리하고, 공개/비공개 설정 및 삭제를 처리합니다.
-* **사용 페이지:** `MainPage` (My Bookshelf 섹션)
-* **구현 상태:** ❌ 미구현
+* **기능:** 사용자가 만든 동화책의 생성, 조회, 공개/비공개 설정, 삭제를 처리합니다.
+* **사용 페이지:** `MainPage` (My Bookshelf 섹션), `StudioPage`(생성 시작 트리거)
+* **DB 기준:** `.cursor/DBTABLES.md`의 `storybooks` 스키마를 따릅니다.
 
-| **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/storybooks` | `GET` | 사용자가 만든 모든 동화책 목록을 불러옵니다. | `Authorization: Bearer {token}` | `{ storybooks: [{ id, title, coverUrl, status, isPublic, createdAt, pageCount }] }` |
-| `/api/storybooks/{storybookId}` | `DELETE` | 특정 동화책을 삭제합니다. | `Authorization: Bearer {token}` | `{ message: "Storybook deleted successfully" }` |
-| `/api/storybooks/{storybookId}/visibility` | `PUT` | 동화책의 공개/비공개 상태를 설정합니다. | `{ isPublic: boolean }` | `{ storybook: { id, isPublic } }` |
+공통 규약
+- 인증: 모든 엔드포인트는 `Authorization: Bearer {token}` 헤더 필요
+- 시간: ISO 8601 문자열
+- ID: UUID
+
+요약 필드(Bookshelf 카드용)
+- `id`, `title`, `cover_image_url`(프론트에선 `coverImageUrl`로 매핑), `status`, `is_public`(`isPublic`), `created_at`(`createdAt`), `page_count`(`pageCount`), `like_count`(`likeCount`)
+
+상세 필드(단건 조회 시 확장)
+- 위 요약 필드 + `character_ids`, `category`, `tags`, `creation_params`, `updated_at`
+
+엔드포인트
+
+1) 목록 조회
+
+- `GET /api/storybooks`
+- Query
+  - `page?=number` (기본 1)
+  - `limit?=number` (기본 20, 최대 100)
+  - `sort?=created_at|like_count` (기본 created_at desc)
+  - `order?=asc|desc` (기본 desc)
+- Response
+```json
+{
+  "storybooks": [
+    {
+      "id": "c8f1...",
+      "title": "My First Story",
+      "coverImageUrl": "https://.../cover.png",
+      "status": "pending",
+      "isPublic": false,
+      "createdAt": "2025-09-25T12:34:56Z",
+      "pageCount": 0,
+      "likeCount": 0
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 20
+}
+```
+
+2) 생성 시작 (Studio 생성 트리거를 Bookshelf로 이동)
+
+- `POST /api/storybooks`
+- Body
+```json
+{
+  "title": "My First Story",
+  "characterIds": ["a6a3..."],
+  "theme": "space-adventure",
+  "style": "watercolor",
+  "pageCount": 10,
+  "prompt": "Bedtime story for 6-year-old about stars"
+}
+```
+- 동작: 즉시 `storybooks`에 레코드 생성 (`status: "pending"`, `creation_params`에 요청 파라미터 저장), 백그라운드에서 실제 생성 파이프라인 시작
+- Response
+```json
+{
+  "storybook": {
+    "id": "c8f1...",
+    "title": "My First Story",
+    "coverImageUrl": null,
+    "status": "pending",
+    "isPublic": false,
+    "createdAt": "2025-09-25T12:34:56Z",
+    "pageCount": 0
+  },
+  "estimatedTime": 300
+}
+```
+
+3) 단건 조회
+
+- `GET /api/storybooks/{storybookId}`
+- Response
+```json
+{
+  "storybook": {
+    "id": "c8f1...",
+    "title": "My First Story",
+    "coverImageUrl": "https://.../cover.png",
+    "status": "script_generated",
+    "isPublic": false,
+    "createdAt": "2025-09-25T12:34:56Z",
+    "updatedAt": "2025-09-25T13:00:00Z",
+    "pageCount": 6,
+    "likeCount": 2,
+    "category": "Fantasy",
+    "tags": ["kids", "bedtime"],
+    "characterIds": ["a6a3...", "d26d..."],
+    "creationParams": {
+      "theme": "space-adventure",
+      "style": "watercolor",
+      "pageCount": 10,
+      "prompt": "Bedtime story for 6-year-old about stars"
+    }
+  }
+}
+```
+
+4) 공개/비공개 설정
+
+- `PUT /api/storybooks/{storybookId}/visibility`
+- Body
+```json
+{ "isPublic": true }
+```
+- Response
+```json
+{ "storybook": { "id": "c8f1...", "isPublic": true } }
+```
+
+5) 메타 업데이트(제목 등)
+
+- `PUT /api/storybooks/{storybookId}`
+- Body (부분 업데이트)
+```json
+{ "title": "New Title", "category": "Sci-Fi", "tags": ["ai", "space"] }
+```
+- Response
+```json
+{ "storybook": { "id": "c8f1...", "title": "New Title" } }
+```
+
+6) 삭제
+
+- `DELETE /api/storybooks/{storybookId}`
+- Response
+```json
+{ "message": "Storybook deleted successfully" }
+```
 
 ---
 
 ### **5. 스튜디오 API (Story Creation & Editing)**
-* **기능:** 동화책 생성, 편집, AI 채팅을 통한 스토리 개선 기능을 제공합니다. (생성 플로우 및 에이전트 구성하면서 개선할 것, 폴백 로직 추가)
+* **기능:** AI와의 상호작용(채팅/재생성)과 페이지 편집 등. 동화책 생성 시작은 Bookshelf API(`POST /api/storybooks`)로 이동했습니다.
 * **사용 페이지:** `StudioPage`, `MainPage` (스토리 생성 시작)
 * **구현 상태:** ❌ 미구현
 
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
-| **`/api/storybooks`** | **`POST`** | **(핵심) 새로운 동화책 생성을 시작합니다.** 선택한 캐릭터, 테마, 키워드를 서버에 보내면, 서버는 `storybookId`와 `status: 'pending'`을 즉시 반환하고 백그라운드에서 스토리 생성을 시작합니다. | `{ prompt, characterIds?, theme?, style?, pageCount? }` | `{ storybook: { id, status: "pending", estimatedTime: 300 } }` |
+|  |  |  |  |  |
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
 | `/api/storybooks/{storybookId}` | `PUT` | 사용자가 수정한 동화책 텍스트 내용을 저장합니다. | `{ title?, pages: [{ id, text }] }` | `{ storybook: { id, title, pages } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |

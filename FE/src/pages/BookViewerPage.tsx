@@ -14,57 +14,42 @@ import {
   ArrowLeft,
   BookOpen
 } from "lucide-react";
+import { storybookApi } from "@/features/storybook";
+import { useSession } from "@clerk/clerk-react";
 
-// Mock story data - replace with API call
-const mockStory = {
-  id: "1",
-  title: "The Dawn of Nova",
-  author: "Alice Kim",
-  category: "Sci‑Fi",
-  tags: ["space", "AI"],
-  pages: [
-    {
-      id: 1,
-      text: "In the year 2157, young Nova gazed out at the stars from her space station home. The twinkling lights seemed to whisper secrets of distant worlds waiting to be discovered.",
-      imageUrl: "/cover.png"
-    },
-    {
-      id: 2,
-      text: "Nova's robot companion, Zyx, whirred softly beside her. 'The exploration ship arrives tomorrow,' Zyx announced with excitement in his digital voice.",
-      imageUrl: "/cover.png"
-    },
-    {
-      id: 3,
-      text: "As the massive exploration vessel docked, Nova felt her heart race with anticipation. This was her chance to explore the unknown regions of the galaxy.",
-      imageUrl: "/cover.png"
-    },
-    {
-      id: 4,
-      text: "Captain Luna welcomed Nova aboard with a warm smile. 'Ready for the adventure of a lifetime?' she asked, her eyes twinkling like the stars themselves.",
-      imageUrl: "/cover.png"
-    },
-    {
-      id: 5,
-      text: "And so began Nova's greatest adventure, traveling through cosmic storms and discovering new worlds filled with wonder and mystery.",
-      imageUrl: "/cover.png"
-    }
-  ]
-};
+type ViewerPage = { id: string; text?: string; imageUrl?: string };
+type ViewerStory = { id: string; title: string; pages: ViewerPage[] };
 
 const BookViewerPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-
-  // Mock loading state
   const [isLoading, setIsLoading] = useState(true);
+  const [story, setStory] = useState<ViewerStory | null>(null);
+  const { session, isLoaded } = useSession();
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, [id]);
+    if (!id) return;
+    if (!isLoaded) return;
+    let mounted = true;
+    setIsLoading(true);
+    (async () => {
+      const token = await session?.getToken({ template: 'storybook4me' });
+      const res = await storybookApi.get(id, token || undefined);
+      if (!mounted) return;
+      const sb = res.storybook;
+      const pages: ViewerPage[] = (sb.pages || []).map((p: any) => ({
+        id: p.id,
+        text: p.script_text,
+        imageUrl: p.image_url || '/cover.png',
+      }));
+      setStory({ id: sb.id, title: sb.title, pages });
+      setCurrentPage(0);
+      setIsLoading(false);
+    })().catch(() => setIsLoading(false));
+    return () => { mounted = false; };
+  }, [id, isLoaded, session]);
 
   const handlePrevPage = () => {
     if (currentPage > 0) {
@@ -73,7 +58,7 @@ const BookViewerPage = () => {
   };
 
   const handleNextPage = () => {
-    if (currentPage < mockStory.pages.length - 1) {
+    if (story && currentPage < story.pages.length - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -103,7 +88,7 @@ const BookViewerPage = () => {
     navigate(-1);
   };
 
-  if (isLoading) {
+  if (isLoading || !story) {
     return (
       <div className="min-h-screen flex flex-col">
         <main className="flex-1 flex items-center justify-center">
@@ -116,50 +101,32 @@ const BookViewerPage = () => {
     );
   }
 
-  const currentPageData = mockStory.pages[currentPage];
+  const currentPageData = story.pages[currentPage];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50">
       <main className="flex-1 py-8 px-4">
         <div className="container mx-auto max-w-6xl">
           {/* Header Controls */}
-          <div className="relative flex items-center justify-between mb-8">
-            <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-8 gap-3">
+            <Button variant="outline" onClick={handleBack} className="flex items-center gap-2 shrink-0">
               <ArrowLeft className="w-4 h-4" />
               Back
             </Button>
-            
-            {/* Absolutely centered title */}
-            <div className="absolute left-1/2 -translate-x-1/2 text-center">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-1">{mockStory.title}</h1>
-              <p className="text-muted-foreground">by {mockStory.author}</p>
+            <div className="flex-1 min-w-0 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 truncate" title={story.title}>{story.title}</h1>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePlayAudio}
-                className={`flex items-center gap-2 ${isPlaying ? 'bg-purple-100' : ''}`}
-              >
-                <Volume2 className="w-4 h-4" />
-                {isPlaying ? 'Pause' : 'Listen'}
+            {/* Action Buttons (icon-only, no background) */}
+            <div className="flex gap-1 shrink-0">
+              <Button variant="ghost" size="icon" onClick={handleShare} aria-label="Share" className="hover:bg-transparent">
+                <Share className="w-6 h-6" />
               </Button>
-              
-              <Button variant="outline" size="sm" onClick={handleShare} className="flex items-center gap-2">
-                <Share className="w-4 h-4" />
-                Share
+              <Button variant="ghost" size="icon" onClick={handleExport} aria-label="Export" className="hover:bg-transparent">
+                <Download className="w-6 h-6" />
               </Button>
-              
-              <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={handleEdit} className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4" />
-                Edit
+              <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Edit" className="hover:bg-transparent">
+                <Edit3 className="w-6 h-6" />
               </Button>
             </div>
           </div>
@@ -181,18 +148,29 @@ const BookViewerPage = () => {
                   </div>
 
                   {/* Text Side */}
-                  <div className="p-8 flex flex-col justify-center">
+                  <div className="p-8 flex flex-col justify-center relative">
                     <div className="text-center lg:text-left">
                       <div className="text-base sm:text-lg leading-relaxed text-gray-700 mb-6">
                         {currentPageData.text}
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePlayAudio}
+                        className={`absolute bottom-4 right-4 flex items-center gap-2 ${isPlaying ? 'bg-purple-100' : ''}`}
+                        aria-label="Listen"
+                        title="Listen"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        {isPlaying ? 'Pause' : 'Listen'}
+                      </Button>
                       
                       <Separator className="my-6" />
                       
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Page {currentPage + 1} of {mockStory.pages.length}</span>
+                        <span>Page {currentPage + 1} of {story.pages.length}</span>
                         <div className="flex gap-1">
-                          {mockStory.pages.map((_, index) => (
+                          {story.pages.map((_, index) => (
                             <div
                               key={index}
                               className={`w-2 h-2 rounded-full transition-colors ${
@@ -226,7 +204,7 @@ const BookViewerPage = () => {
                 variant="outline"
                 size="icon"
                 onClick={handleNextPage}
-                disabled={currentPage === mockStory.pages.length - 1}
+                disabled={currentPage === story.pages.length - 1}
                 className="w-12 h-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -248,7 +226,7 @@ const BookViewerPage = () => {
               <Button
                 variant="outline"
                 onClick={handleNextPage}
-                disabled={currentPage === mockStory.pages.length - 1}
+                disabled={currentPage === story.pages.length - 1}
                 className="flex items-center gap-2"
               >
                 Next
