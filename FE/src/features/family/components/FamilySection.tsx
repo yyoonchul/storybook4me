@@ -28,15 +28,16 @@ export const FamilySection = () => {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const { session } = useSession();
+  const { session, isLoaded } = useSession();
 
   useEffect(() => {
+    if (!isLoaded || !session) return;
     let mounted = true;
     const load = async () => {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const token = await session?.getToken({ template: 'storybook4me' });
+        const token = await session.getToken({ template: 'storybook4me' });
         const res = await familyApi.getCharacters({}, token || undefined);
         if (!mounted) return;
         const mapped: FamilyMember[] = res.characters.map((c) => ({
@@ -58,7 +59,7 @@ export const FamilySection = () => {
     };
     load();
     return () => { mounted = false; };
-  }, [session]);
+  }, [isLoaded, session]);
 
   const handleAddCharacter = () => {
     setSelectedCharacterId(undefined);
@@ -139,7 +140,7 @@ export const FamilySection = () => {
       <div id="family" className="scroll-mt-20">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">My Family</h2>
-          <Button variant="outline" size="sm" onClick={handleAddCharacter}>
+          <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={handleAddCharacter}>
             <Plus className="w-4 h-4 mr-2" />
             Add Character
           </Button>

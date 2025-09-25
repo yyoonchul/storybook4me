@@ -5,21 +5,12 @@ import { Button } from "../shared/components/ui/button";
 import { Card, CardContent } from "../shared/components/ui/card";
 import { Separator } from "../shared/components/ui/separator";
 import { Input } from "../shared/components/ui/input";
-import { Switch } from "../shared/components/ui/switch";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../shared/components/ui/accordion";
 import { SignedIn, SignedOut, useUser, useClerk } from "@/features/auth";
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
-  AlertDialogTrigger 
-} from "../shared/components/ui/alert-dialog";
-import { Sparkles, Plus, ArrowRight, Edit3, Trash2, Lock, Unlock, Save, X, Globe } from "lucide-react";
+import { BookshelfSection } from "@/features/storybook/components/BookshelfSection";
+import { useSession } from "@clerk/clerk-react";
+import { storybookApi } from "@/features/storybook";
+import { ArrowRight, ArrowRightCircle } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
 import { FamilySection } from "@/features/family";
@@ -39,20 +30,14 @@ const mockExploreBooks = [
 
 // presets are fetched via PresetCharactersSection
 
-const mockBookshelf = [
-  { id: 1, title: "Chloe's Space Adventure", cover: "/cover.png", isPublic: false },
-  { id: 2, title: "Jihoon and the Dragon", cover: "/cover.png", isPublic: true },
-  { id: 3, title: "Magic Forest Quest", cover: "/cover.png", isPublic: false },
-];
+type BookshelfItem = { id: string; title: string; cover: string; isPublic: boolean };
 
 const MainPage = () => {
   const [storyPrompt, setStoryPrompt] = useState("");
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [bookshelfData, setBookshelfData] = useState(mockBookshelf);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [storyToDelete, setStoryToDelete] = useState<number | null>(null);
+  const [bookshelfData, setBookshelfData] = useState<BookshelfItem[]>([]);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  
   // Typewriter placeholder state
   const typewriterExamples = [
     'My daughter Emma goes on a magical adventure...',
@@ -140,51 +125,27 @@ const MainPage = () => {
     return () => clearTimeout(timer);
   }, [storyPrompt, twIndex, twChar, twDeleting]);
 
-  const handleCreateStory = () => {
+  // My Bookshelf is now handled by BookshelfSection component
+
+  const { session } = useSession();
+
+  const handleCreateStory = async () => {
     if (!isSignedIn) {
       openSignIn?.();
       return;
     }
-    
-    if (!storyPrompt.trim()) {
-      alert("Please enter a story idea!");
-      return;
+    const token = await session?.getToken({ template: 'storybook4me' });
+    try {
+      await storybookApi.create({ title: storyPrompt || '', characterIds: [], theme: '', style: '', pageCount: 0, prompt: '' }, token || undefined);
+      navigate('/studio?mode=settings');
+    } catch (_) {
+      // noop
     }
-    
-    // Navigate to studio with prompt
-    navigate(`/studio?prompt=${encodeURIComponent(storyPrompt)}`);
   };
 
   // Family handlers are encapsulated inside FamilySection
 
-  // Bookshelf edit handlers
-  const handleToggleVisibility = (storyId: number) => {
-    setBookshelfData(prev => 
-      prev.map(story => 
-        story.id === storyId 
-          ? { ...story, isPublic: !story.isPublic }
-          : story
-      )
-    );
-  };
-
-  const handleDeleteStory = (storyId: number) => {
-    setStoryToDelete(storyId);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteStory = () => {
-    if (storyToDelete) {
-      setBookshelfData(prev => prev.filter(story => story.id !== storyToDelete));
-      setDeleteDialogOpen(false);
-      setStoryToDelete(null);
-    }
-  };
-
-  const cancelDeleteStory = () => {
-    setDeleteDialogOpen(false);
-    setStoryToDelete(null);
-  };
+  // Bookshelf management moved to storybook feature (to be implemented there)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -290,118 +251,7 @@ const MainPage = () => {
             <div className="space-y-12">
               {/* Bookshelf Section - Only if logged in */}
               <SignedIn>
-                <div>
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 className="text-3xl font-bold">My Bookshelf</h2>
-                    <div className="flex gap-2">
-                      {isEditMode ? (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setIsEditMode(false)}
-                            className="flex items-center gap-2"
-                          >
-                            <Save className="w-4 h-4" />
-                            Save
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setIsEditMode(false)}
-                            className="flex items-center gap-2"
-                          >
-                            <X className="w-4 h-4" />
-                            Cancel
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setIsEditMode(true)}
-                            className="flex items-center gap-2"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            Edit
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => navigate("/studio?mode=settings")}>
-                            Create New
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {bookshelfData.map((book) => (
-                      <Card 
-                        key={book.id} 
-                        className={`hover-lift ${!isEditMode ? 'cursor-pointer' : ''} relative group`}
-                        onClick={!isEditMode ? () => navigate(`/book/${book.id}`) : undefined}
-                      >
-                        <CardContent className="p-0">
-                          <div className="aspect-[3/4] bg-gray-200 rounded-t-lg overflow-hidden relative">
-                            <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
-                            {/* Visibility indicator */}
-                            <div className="absolute top-2 right-2">
-                              {book.isPublic ? (
-                                <div className="bg-green-500 text-white p-1.5 rounded-full shadow-lg">
-                                  <Globe className="w-3 h-3" />
-                                </div>
-                              ) : (
-                                <div className="bg-gray-600 text-white p-1.5 rounded-full shadow-lg">
-                                  <Lock className="w-3 h-3" />
-                                </div>
-                              )}
-                            </div>
-                            {/* Edit controls overlay - Delete only */}
-                            {isEditMode && (
-                              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteStory(book.id);
-                                  }}
-                                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg px-4 py-2"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Delete Story
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-3">
-                            <p className="text-sm font-medium line-clamp-2">{book.title}</p>
-                            {isEditMode && (
-                              <div className="mt-2 flex items-center justify-between">
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  {book.isPublic ? (
-                                    <>
-                                      <Globe className="w-3 h-3 text-green-600" />
-                                      <span>Public</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Lock className="w-3 h-3 text-gray-600" />
-                                      <span>Private</span>
-                                    </>
-                                  )}
-                                </div>
-                                <Switch
-                                  checked={book.isPublic}
-                                  onCheckedChange={() => handleToggleVisibility(book.id)}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
+                <BookshelfSection />
               </SignedIn>
 
               <SignedIn>
@@ -419,7 +269,8 @@ const MainPage = () => {
               <div>
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-3xl font-bold">Explore</h2>
-                  <Button variant="outline" size="sm" onClick={() => navigate("/explore")}>
+                  <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={() => navigate("/explore")}> 
+                    <ArrowRightCircle className="w-4 h-4 mr-2" />
                     More Stories
                   </Button>
                 </div>
@@ -445,26 +296,7 @@ const MainPage = () => {
 
       <Footer />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Story</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this story? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDeleteStory}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteStory}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Storybook management dialogs moved to storybook feature */}
     </div>
   );
 };

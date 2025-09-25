@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.features.waitlist import router as waitlist_router
 from app.features.auth.api import router as auth_router
 from app.features.family.api import router as family_router
+from app.features.storybook.api import router as storybook_router
 
 
 def create_app() -> FastAPI:
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(waitlist_router, prefix="/api")
     app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
     app.include_router(family_router, prefix="/api/family", tags=["family"])
+    app.include_router(storybook_router, prefix="/api/storybooks", tags=["storybooks"])
     
     # Health check route
     @app.get("/")
