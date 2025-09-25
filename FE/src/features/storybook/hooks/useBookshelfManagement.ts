@@ -14,7 +14,13 @@ export function useBookshelfManagement() {
     await storybookApi.delete(storybookId, token || undefined);
   };
 
-  return { toggleVisibility, deleteStorybook };
+  const createStorybook = async (title: string = '') => {
+    const token = await session?.getToken({ template: 'storybook4me' });
+    const body = { title, characterIds: [], theme: '', style: '', pageCount: 0, prompt: '' } as const;
+    return storybookApi.create(body, token || undefined);
+  };
+
+  return { toggleVisibility, deleteStorybook, createStorybook };
 }
 
 

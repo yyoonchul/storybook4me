@@ -19,7 +19,7 @@ import {
 export function BookshelfSection() {
   const navigate = useNavigate();
   const { items, isLoading, error, removeItem, updateVisibility } = useBookshelf();
-  const { toggleVisibility, deleteStorybook } = useBookshelfManagement();
+  const { toggleVisibility, deleteStorybook, createStorybook } = useBookshelfManagement();
   const [isEditMode, setIsEditMode] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function BookshelfSection() {
                 <Edit3 className="w-4 h-4" />
                 Edit
               </Button>
-              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={() => navigate('/studio?mode=settings')}>
+              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={async () => { await createStorybook(''); navigate('/studio?mode=settings'); }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create New
               </Button>
@@ -157,7 +157,7 @@ export function BookshelfSection() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => { setConfirmOpen(false); setPendingDeleteId(null); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-red-600 focus-visible:ring-red-300 transition-colors"
               onClick={async () => {
                 if (pendingDeleteId) {
                   await deleteStorybook(pendingDeleteId);

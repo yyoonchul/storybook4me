@@ -14,7 +14,7 @@ export const storybookApi = {
     const endpoint = search.toString() ? `storybooks?${search.toString()}` : 'storybooks';
     return apiClient.get<StorybookListResponse>(endpoint, token);
   },
-  create: (body: CreateStorybookRequest) => apiClient.post<StorybookResponse>('storybooks', body as any),
+  create: (body: CreateStorybookRequest, token?: string) => apiClient.post<StorybookResponse>('storybooks', body as any, token),
   get: (id: string, token?: string) => apiClient.get<StorybookResponse>(`storybooks/${id}`, token),
   update: (id: string, body: UpdateStorybookRequest, token?: string) => apiClient.put<StorybookResponse>(`storybooks/${id}`, body, token),
   setVisibility: (id: string, body: UpdateVisibilityRequest, token?: string) => apiClient.put<StorybookResponse>(`storybooks/${id}/visibility`, body as any, token),

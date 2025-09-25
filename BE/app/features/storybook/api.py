@@ -9,7 +9,6 @@ from .models import (
     StorybookListResponse,
     StorybookResponse,
     CreateStorybookRequest,
-    UpdateStorybookRequest,
     UpdateVisibilityRequest,
     DeleteResponse,
 )
@@ -39,12 +38,6 @@ async def create_storybook(req: CreateStorybookRequest, current_user_id: str = D
 @router.get("/{storybook_id}", response_model=StorybookResponse)
 async def get_storybook(storybook_id: str, current_user_id: str = Depends(get_current_user_id)):
     storybook = storybook_service.get_storybook(current_user_id, storybook_id)
-    return StorybookResponse(storybook=storybook)
-
-
-@router.put("/{storybook_id}", response_model=StorybookResponse)
-async def update_storybook(storybook_id: str, req: UpdateStorybookRequest, current_user_id: str = Depends(get_current_user_id)):
-    storybook = storybook_service.update_storybook(current_user_id, storybook_id, req)
     return StorybookResponse(storybook=storybook)
 
 

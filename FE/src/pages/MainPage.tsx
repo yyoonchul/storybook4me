@@ -8,6 +8,8 @@ import { Input } from "../shared/components/ui/input";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "../shared/components/ui/accordion";
 import { SignedIn, SignedOut, useUser, useClerk } from "@/features/auth";
 import { BookshelfSection } from "@/features/storybook/components/BookshelfSection";
+import { useSession } from "@clerk/clerk-react";
+import { storybookApi } from "@/features/storybook";
 import { ArrowRight, ArrowRightCircle } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
@@ -125,19 +127,20 @@ const MainPage = () => {
 
   // My Bookshelf is now handled by BookshelfSection component
 
-  const handleCreateStory = () => {
+  const { session } = useSession();
+
+  const handleCreateStory = async () => {
     if (!isSignedIn) {
       openSignIn?.();
       return;
     }
-    
-    if (!storyPrompt.trim()) {
-      alert("Please enter a story idea!");
-      return;
+    const token = await session?.getToken({ template: 'storybook4me' });
+    try {
+      await storybookApi.create({ title: storyPrompt || '', characterIds: [], theme: '', style: '', pageCount: 0, prompt: '' }, token || undefined);
+      navigate('/studio?mode=settings');
+    } catch (_) {
+      // noop
     }
-    
-    // Navigate to studio with prompt
-    navigate(`/studio?prompt=${encodeURIComponent(storyPrompt)}`);
   };
 
   // Family handlers are encapsulated inside FamilySection

@@ -265,19 +265,7 @@ interface DeleteResponse {
 { "storybook": { "id": "c8f1...", "isPublic": true } }
 ```
 
-5) 메타 업데이트(제목 등)
-
-- `PUT /api/storybooks/{storybookId}`
-- Body (부분 업데이트)
-```json
-{ "title": "New Title", "category": "Sci-Fi", "tags": ["ai", "space"] }
-```
-- Response
-```json
-{ "storybook": { "id": "c8f1...", "title": "New Title" } }
-```
-
-6) 삭제
+5) 삭제
 
 - `DELETE /api/storybooks/{storybookId}`
 - Response
@@ -296,7 +284,7 @@ interface DeleteResponse {
 | :--- | :--- | :--- | :--- | :--- |
 |  |  |  |  |  |
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
-| `/api/storybooks/{storybookId}` | `PUT` | 사용자가 수정한 동화책 텍스트 내용을 저장합니다. | `{ title?, pages: [{ id, text }] }` | `{ storybook: { id, title, pages } }` |
+| `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |
 | `/api/chat/storybook/{storybookId}` | `POST` | AI와 스토리 개선에 대한 대화를 시작합니다. | `{ message, context?: { pageNumber?, currentText? } }` | `{ response: "AI response text", suggestions?: [{ type, content }] }` |
 

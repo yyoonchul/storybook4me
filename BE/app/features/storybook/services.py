@@ -11,7 +11,6 @@ from .models import (
     StorybookListResponse,
     StorybookResponse,
     CreateStorybookRequest,
-    UpdateStorybookRequest,
     StorybookStatus,
     Page,
 )
@@ -132,31 +131,7 @@ class StorybookService:
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get storybook: {e}")
 
-    def update_storybook(self, user_id: str, storybook_id: str, req: UpdateStorybookRequest) -> Storybook:
-        try:
-            # Ownership check
-            current = self.get_storybook(user_id, storybook_id)
-
-            update: Dict[str, Any] = {}
-            if req.title is not None:
-                update["title"] = req.title
-            if req.category is not None:
-                update["category"] = req.category
-            if req.tags is not None:
-                update["tags"] = req.tags
-
-            if not update:
-                return current
-
-            res = supabase.table("storybooks").update(update).eq("id", storybook_id).execute()
-            if not res.data or not isinstance(res.data, list):
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update storybook")
-            row = res.data[0]
-            return Storybook(**row)
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update storybook: {e}")
+    # update_storybook removed (moved to Studio scope)
 
     def set_visibility(self, user_id: str, storybook_id: str, is_public: bool) -> Storybook:
         try:
