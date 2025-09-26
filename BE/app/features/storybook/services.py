@@ -88,14 +88,19 @@ class StorybookService:
         except Exception as e:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create storybook: {e}")
 
-    def get_storybook(self, user_id: str, storybook_id: str) -> Storybook:
+    def get_storybook(self, user_id: Optional[str], storybook_id: str) -> Storybook:
         try:
             res = supabase.table("storybooks").select("*").eq("id", storybook_id).single().execute()
             if not res.data:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Storybook not found")
             row = res.data
-            if row.get("user_id") != user_id:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+            # Allow if owner or public
+            if user_id is None:
+                if not row.get("is_public"):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+            else:
+                if row.get("user_id") != user_id and not row.get("is_public"):
+                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
             storybook = Storybook(**row)
 
             # Fetch pages ordered by page_number

@@ -1,10 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from '@clerk/clerk-react';
 import { exploreApi } from '../api';
 
 export function useStoryInteractions() {
   const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
   const { session } = useSession();
+
+  // Initialize liked stories from localStorage for persistence across refreshes
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('explore_liked_story_ids');
+      if (raw) {
+        const arr: string[] = JSON.parse(raw);
+        setLikedStories(new Set(arr));
+      }
+    } catch (e) {
+      // ignore parsing errors
+    }
+  }, []);
+
+  const persistLiked = (setRef: Set<string>) => {
+    try {
+      localStorage.setItem('explore_liked_story_ids', JSON.stringify(Array.from(setRef)));
+    } catch (e) {
+      // ignore quota errors
+    }
+  };
 
   const toggleLike = async (storybookId: string) => {
     if (!session) return;
@@ -20,6 +41,7 @@ export function useStoryInteractions() {
         } else {
           newSet.delete(storybookId);
         }
+        persistLiked(newSet);
         return newSet;
       });
 

@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Heart, Eye, User, Calendar } from 'lucide-react';
+import { Eye, User, Calendar } from 'lucide-react';
 import { PublicStorybookSummary } from '../types';
 import { useStoryInteractions } from '../hooks';
 import { useState } from 'react';
@@ -15,23 +15,10 @@ interface StoryCardProps {
 
 export function StoryCard({ story, onLike, variant = 'default' }: StoryCardProps) {
   const [isLiking, setIsLiking] = useState(false);
-  const { toggleLike, incrementView, isLiked } = useStoryInteractions();
+  const { incrementView } = useStoryInteractions();
   const navigate = useNavigate();
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isLiking) return;
-
-    setIsLiking(true);
-    try {
-      await toggleLike(story.id);
-      onLike?.(story.id);
-    } catch (error) {
-      console.error('Failed to toggle like:', error);
-    } finally {
-      setIsLiking(false);
-    }
-  };
+  // like interactions are hidden per requirements
 
   const handleCardClick = async () => {
     try {
@@ -56,11 +43,13 @@ export function StoryCard({ story, onLike, variant = 'default' }: StoryCardProps
             alt={story.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          <div className="absolute top-2 right-2">
+          {/* Category badge */}
+          <div className="absolute top-2 left-2">
             <Badge variant="secondary" className="bg-white/90 text-gray-800">
               {story.category || 'General'}
             </Badge>
           </div>
+
         </div>
         
         <div className="p-4">
@@ -79,10 +68,6 @@ export function StoryCard({ story, onLike, variant = 'default' }: StoryCardProps
                   <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />
                     <span>{story.viewCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-4 h-4" />
-                    <span>{story.likeCount}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -103,35 +88,19 @@ export function StoryCard({ story, onLike, variant = 'default' }: StoryCardProps
                     </Badge>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLike}
-                  disabled={isLiking}
-                  className={`${
-                    isLiked(story.id) 
-                      ? 'text-red-500 hover:text-red-600' 
-                      : 'text-gray-500 hover:text-red-500'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${isLiked(story.id) ? 'fill-current' : ''}`} />
-                </Button>
+                <span className="w-0" />
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  <span>{story.viewCount}</span>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    <span>{story.viewCount}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Heart className="w-4 h-4" />
-                  <span>{story.likeCount}</span>
-                </div>
+                <span className="text-xs">{new Date(story.createdAt).toLocaleDateString()}</span>
               </div>
-              <span className="text-xs">{new Date(story.createdAt).toLocaleDateString()}</span>
-            </div>
           )}
         </div>
       </CardContent>

@@ -2,6 +2,7 @@ import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { StoryCard } from "../features/explore/components/StoryCard";
 import { Input } from "../shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shared/components/ui/select";
 import { Search } from "lucide-react";
@@ -120,30 +121,7 @@ const ExplorePage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {stories.map((story) => (
-                <div 
-                  key={story.id} 
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/book/${story.id}`)}
-                >
-                  <div className="aspect-[3/4] bg-gray-200 overflow-hidden">
-                    <img 
-                      src={story.coverImageUrl || '/cover.png'} 
-                      alt={story.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg line-clamp-2 mb-2">{story.title}</h3>
-                    <p className="text-sm text-gray-600 mb-3">by {story.author.name}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center gap-4">
-                        <span>👁️ {story.viewCount}</span>
-                        <span>❤️ {story.likeCount}</span>
-                      </div>
-                      <span>{new Date(story.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
+                <StoryCard key={story.id} story={story} />
               ))}
             </div>
           )}
