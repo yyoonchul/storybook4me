@@ -310,13 +310,101 @@ interface DeleteResponse {
 * **사용 페이지:** `ExplorePage`, `StoryCard`
 * **구현 상태:** ❌ 미구현
 
-| **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/explore/stories` | `GET` | 공개된 동화책 목록을 검색, 필터링, 정렬하여 조회합니다. (isPublic=true인 동화책만) | `?q=search&category=fantasy&sort=latest&page=1&limit=20` | `{ stories: [{ id, title, author, coverUrl, category, tags, likes, views, createdAt, isPublic: true }], pagination: { page, total, hasNext } }` |
-| `/api/explore/categories` | `GET` | 사용 가능한 카테고리 목록을 조회합니다. | - | `{ categories: [{ id, name, count }] }` |
-| `/api/explore/trending` | `GET` | 인기 있는 동화책 목록을 조회합니다. | `?period=week&limit=10` | `{ stories: [{ id, title, author, coverUrl, likes, views }] }` |
-| `/api/stories/{storyId}/like` | `POST` | 동화책에 좋아요를 추가/제거합니다. | `Authorization: Bearer {token}` | `{ liked: boolean, likeCount: number }` |
-| `/api/stories/{storyId}/view` | `POST` | 동화책 조회수를 증가시킵니다. | - | `{ viewCount: number }` |
+#### **📋 API 엔드포인트 상세**
+
+##### **1) 공개 동화책 목록 조회**
+- **`GET /api/explore/stories`**
+- **설명:** 공개된 동화책 목록을 검색, 필터링, 정렬하여 조회합니다. (`is_public=true`인 동화책만)
+- **Query Parameters:**
+  ```typescript
+  interface ExploreStoriesParams {
+    q?: string;           // 검색어
+    category?: string;     // 카테고리 필터
+    tags?: string[];      // 태그 필터 (배열)
+    sort?: 'latest' | 'popular' | 'viewed'; // 정렬 기준
+    page?: number;        // 페이지 번호 (기본값: 1)
+    limit?: number;       // 페이지당 항목 수 (기본값: 20, 최대: 100)
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface ExploreStoriesResponse {
+    stories: PublicStorybookSummary[];
+    pagination: {
+      page: number;
+      total: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }
+
+  interface PublicStorybookSummary {
+    id: string;
+    title: string;
+    coverImageUrl?: string;
+    author: {
+      id: string;
+      name: string;
+      avatarUrl?: string;
+    };
+    category?: string;
+    tags: string[];
+    likeCount: number;
+    viewCount: number;
+    pageCount: number;
+    isPublic: true; // 항상 true
+    createdAt: string;
+  }
+  ```
+
+##### **2) 카테고리 목록 조회**
+- **`GET /api/explore/categories`**
+- **설명:** 사용 가능한 카테고리 목록을 조회합니다.
+- **Response:**
+  ```typescript
+  interface ExploreCategoriesResponse {
+    categories: {
+      id: string;
+      name: string;
+      count: number;
+    }[];
+  }
+  ```
+
+##### **3) 동화책 좋아요 토글**
+- **`POST /api/storybooks/{storybookId}/like`**
+- **설명:** 동화책에 좋아요를 추가/제거합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```typescript
+  interface LikeResponse {
+    liked: boolean;
+    likeCount: number;
+  }
+  ```
+
+##### **4) 동화책 조회수 증가**
+- **`POST /api/storybooks/{storybookId}/view`**
+- **설명:** 동화책 조회수를 증가시킵니다. (인증 불필요)
+- **Response:**
+  ```typescript
+  interface ViewResponse {
+    viewCount: number;
+  }
+  ```
+
+#### **🔒 RLS 정책 (Supabase)**
+```sql
+-- 공개 동화책 조회 정책
+CREATE POLICY "Anyone can view public storybooks" 
+  ON public.storybooks FOR SELECT 
+  USING (is_public = true);
+
+-- 좋아요 관리 정책
+CREATE POLICY "Users can manage own likes" 
+  ON public.storybook_likes FOR ALL 
+  USING (user_id = auth.jwt()->>'sub');
+```
 
 ---
 

@@ -15,10 +15,10 @@ import {
   BookOpen
 } from "lucide-react";
 import { storybookApi } from "@/features/storybook";
-import { useSession } from "@clerk/clerk-react";
+import { useSession, useUser } from "@clerk/clerk-react";
 
 type ViewerPage = { id: string; text?: string; imageUrl?: string };
-type ViewerStory = { id: string; title: string; pages: ViewerPage[] };
+type ViewerStory = { id: string; title: string; pages: ViewerPage[]; ownerUserId?: string };
 
 const BookViewerPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +28,7 @@ const BookViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [story, setStory] = useState<ViewerStory | null>(null);
   const { session, isLoaded } = useSession();
+  const { user } = useUser();
 
   useEffect(() => {
     if (!id) return;
@@ -44,7 +45,9 @@ const BookViewerPage = () => {
         text: p.script_text,
         imageUrl: p.image_url || '/cover.png',
       }));
-      setStory({ id: sb.id, title: sb.title, pages });
+      // Some responses may use camelCase userId; fall back to snake_case if present
+      const ownerId = (sb as any).userId ?? (sb as any).user_id;
+      setStory({ id: sb.id, title: sb.title, pages, ownerUserId: ownerId });
       setCurrentPage(0);
       setIsLoading(false);
     })().catch(() => setIsLoading(false));
@@ -117,18 +120,22 @@ const BookViewerPage = () => {
               <h1 className="text-2xl sm:text-3xl font-bold mb-1 truncate" title={story.title}>{story.title}</h1>
             </div>
 
-            {/* Action Buttons (icon-only, no background) */}
-            <div className="flex gap-1 shrink-0">
-              <Button variant="ghost" size="icon" onClick={handleShare} aria-label="Share" className="hover:bg-transparent">
-                <Share className="w-6 h-6" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleExport} aria-label="Export" className="hover:bg-transparent">
-                <Download className="w-6 h-6" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Edit" className="hover:bg-transparent">
-                <Edit3 className="w-6 h-6" />
-              </Button>
-            </div>
+            {/* Action Buttons (owner only) */}
+            {story.ownerUserId && user?.id === story.ownerUserId ? (
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="icon" onClick={handleShare} aria-label="Share" className="hover:bg-transparent">
+                  <Share className="w-6 h-6" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleExport} aria-label="Export" className="hover:bg-transparent">
+                  <Download className="w-6 h-6" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleEdit} aria-label="Edit" className="hover:bg-transparent">
+                  <Edit3 className="w-6 h-6" />
+                </Button>
+              </div>
+            ) : (
+              <div className="shrink-0" />
+            )}
           </div>
 
           {/* Book Viewer */}

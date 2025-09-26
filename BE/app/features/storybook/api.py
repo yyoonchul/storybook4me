@@ -4,7 +4,7 @@ Storybook API endpoints as per .cursor/API.md (My Bookshelf section).
 
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
-from app.features.auth.deps import get_current_user_id
+from app.features.auth.deps import get_current_user_id, get_optional_user_id
 from .models import (
     StorybookListResponse,
     StorybookResponse,
@@ -36,7 +36,7 @@ async def create_storybook(req: CreateStorybookRequest, current_user_id: str = D
 
 
 @router.get("/{storybook_id}", response_model=StorybookResponse)
-async def get_storybook(storybook_id: str, current_user_id: str = Depends(get_current_user_id)):
+async def get_storybook(storybook_id: str, current_user_id: str | None = Depends(get_optional_user_id)):
     storybook = storybook_service.get_storybook(current_user_id, storybook_id)
     return StorybookResponse(storybook=storybook)
 
