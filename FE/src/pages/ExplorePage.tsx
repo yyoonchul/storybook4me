@@ -1,105 +1,41 @@
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
-import StoryCard, { type Story } from "../shared/components/StoryCard";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "../shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shared/components/ui/select";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-const sampleStories: Story[] = [
-  {
-    id: "1",
-    title: "The Dawn of Nova",
-    author: "Alice Kim",
-    category: "Sci‑Fi",
-    tags: ["space", "AI"],
-    coverUrl: "/cover.png",
-    likes: 124,
-    views: 2301,
-    createdAt: "2025-08-01T10:00:00Z",
-  },
-  {
-    id: "2",
-    title: "Whispers in the Library",
-    author: "J. Park",
-    category: "Mystery",
-    tags: ["library", "secret"],
-    coverUrl: "/cover.png",
-    likes: 89,
-    views: 1400,
-    createdAt: "2025-07-12T10:00:00Z",
-  },
-  {
-    id: "3",
-    title: "A Garden of Numbers",
-    author: "Min Lee",
-    category: "Fantasy",
-    tags: ["math", "adventure"],
-    coverUrl: "/cover.png",
-    likes: 201,
-    views: 4102,
-    createdAt: "2025-05-22T10:00:00Z",
-  },
-  {
-    id: "4",
-    title: "Circuit Hearts",
-    author: "Dana Cho",
-    category: "Romance",
-    tags: ["startup", "future"],
-    coverUrl: "/cover.png",
-    likes: 45,
-    views: 780,
-    createdAt: "2025-09-05T10:00:00Z",
-  },
-];
-
-const categories = ["All", "Sci‑Fi", "Mystery", "Fantasy", "Romance"] as const;
-const sortOptions = [
-  { value: "latest", label: "Latest" },
-  { value: "popular", label: "Most popular" },
-  { value: "views", label: "Most viewed" },
-] as const;
-
-type SortKey = typeof sortOptions[number]["value"];
+import { Search } from "lucide-react";
+import { useExploreStories, useCategories } from "../features/explore/hooks";
+import { SortType } from "../features/explore/types";
 
 const ExplorePage = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<(typeof categories)[number]>("All");
-  const [sortBy, setSortBy] = useState<SortKey>("latest");
+  const [category, setCategory] = useState("all");
+  const [sortBy, setSortBy] = useState<SortType>(SortType.LATEST);
+  
+  const { stories, isLoading, error, fetchStories } = useExploreStories();
+  
+  const { categories } = useCategories();
 
-  const filtered = useMemo(() => {
-    let list = [...sampleStories];
-
-    // search
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.author.toLowerCase().includes(q) ||
-          s.tags.some((t) => t.toLowerCase().includes(q)),
-      );
-    }
-
-    // category
-    if (category !== "All") {
-      list = list.filter((s) => s.category === category);
-    }
-
-    // sorting
-    list.sort((a, b) => {
-      if (sortBy === "latest") return +new Date(b.createdAt) - +new Date(a.createdAt);
-      if (sortBy === "popular") return b.likes - a.likes;
-      if (sortBy === "views") return b.views - a.views;
-      return 0;
+  const handleSearch = () => {
+    fetchStories({
+      q: query || undefined,
+      category: category === 'all' ? undefined : category,
+      sort: sortBy,
+      limit: 50
     });
+  };
 
-    return list;
-  }, [query, category, sortBy]);
-
-  const onOpen = (id: string) => {
-    navigate(`/book/${id}`);
+  const handleSortChange = (value: string) => {
+    const newSort = value as SortType;
+    setSortBy(newSort);
+    fetchStories({
+      q: query || undefined,
+      category: category === 'all' ? undefined : category,
+      sort: newSort,
+      limit: 50
+    });
   };
 
   return (
@@ -113,44 +49,104 @@ const ExplorePage = () => {
           {/* Controls */}
           <div className="flex flex-col sm:flex-row gap-4 items-end mb-8">
             <div className="flex-1 min-w-0">
-              <Input placeholder="Search by title, author, or tag" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input 
+                  placeholder="Search by title, author, or tag" 
+                  value={query} 
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="pl-10"
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
             </div>
             <div className="w-full sm:w-auto sm:min-w-[140px]">
-              <Select value={category} onValueChange={(v) => setCategory(v as (typeof categories)[number])}>
+              <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>
+                      {cat.name} ({cat.count})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="w-full sm:w-auto sm:min-w-[140px]">
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <Select value={sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sortOptions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value={SortType.LATEST}>Latest</SelectItem>
+                  <SelectItem value={SortType.POPULAR}>Most Popular</SelectItem>
+                  <SelectItem value={SortType.VIEWED}>Most Viewed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {/* Filter button removed; search with Enter or change sort/category */}
           </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((story) => (
-              <StoryCard key={story.id} story={story} onOpen={onOpen} />)
-            )}
-          </div>
+          {/* Stories Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={`explore-skeleton-${i}`} className="animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-200 rounded-t-lg mb-4" />
+                  <div className="h-4 bg-gray-300 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-300 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">Failed to load stories: {error}</p>
+              <div>
+                <a
+                  onClick={() => fetchStories()}
+                  className="text-blue-600 hover:underline cursor-pointer"
+                >
+                  Try Again
+                </a>
+              </div>
+            </div>
+          ) : stories.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No stories found. Try adjusting your filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stories.map((story) => (
+                <div 
+                  key={story.id} 
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/book/${story.id}`)}
+                >
+                  <div className="aspect-[3/4] bg-gray-200 overflow-hidden">
+                    <img 
+                      src={story.coverImageUrl || '/cover.png'} 
+                      alt={story.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg line-clamp-2 mb-2">{story.title}</h3>
+                    <p className="text-sm text-gray-600 mb-3">by {story.author.name}</p>
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <div className="flex items-center gap-4">
+                        <span>👁️ {story.viewCount}</span>
+                        <span>❤️ {story.likeCount}</span>
+                      </div>
+                      <span>{new Date(story.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer />

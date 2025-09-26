@@ -14,17 +14,8 @@ import { ArrowRight, ArrowRightCircle } from "lucide-react";
 import Header from "../shared/components/layout/Header";
 import Footer from "../shared/components/layout/Footer";
 import { FamilySection } from "@/features/family";
+import { ExploreSection } from "@/features/explore/components";
 // Clerk is the source of truth for auth state; remove legacy auth usage
-
-// Mock data - replace with real data later
-const mockExploreBooks = [
-  { id: 1, title: "The Brave Knight", cover: "/cover.png" },
-  { id: 2, title: "Space Adventure", cover: "/cover.png" },
-  { id: 3, title: "Magic Forest", cover: "/cover.png" },
-  { id: 4, title: "Ocean Quest", cover: "/cover.png" },
-  { id: 5, title: "Dragon Friend", cover: "/cover.png" },
-  { id: 6, title: "Princess Castle", cover: "/cover.png" },
-];
 
 // Family section is encapsulated in features/family/FamilySection
 
@@ -266,29 +257,12 @@ const MainPage = () => {
               </SignedIn>
 
               {/* Explore Section */}
-              <div>
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-3xl font-bold">Explore</h2>
-                  <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={() => navigate("/explore")}> 
-                    <ArrowRightCircle className="w-4 h-4 mr-2" />
-                    More Stories
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {mockExploreBooks.map((book) => (
-                    <Card key={book.id} className="hover-lift cursor-pointer" onClick={() => navigate(`/book/${book.id}`)}>
-                      <CardContent className="p-0">
-                        <div className="aspect-[3/4] bg-gray-200 rounded-t-lg overflow-hidden">
-                          <img src={book.cover} alt={book.title} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="p-3">
-                          <p className="text-sm font-medium line-clamp-2">{book.title}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+              <ExploreSection 
+                title="Explore"
+                showFilters={false}
+                showMoreStories={true}
+                limit={6}
+              />
             </div>
           </div>
         </section>
