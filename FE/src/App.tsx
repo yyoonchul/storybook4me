@@ -20,6 +20,7 @@ import FAQPage from "./pages/info/FAQPage";
 import ContactPage from "./pages/info/ContactPage";
 import TermsPage from "./pages/info/TermsPage";
 import PrivacyPage from "./pages/info/PrivacyPage";
+import TestUploadPage from "./pages/TestUploadPage";
 import NotFound from "./pages/NotFound";
 import { LandingPage } from "@/features/landing";
 import { ErrorBoundary } from "./shared/components/ErrorBoundary";
@@ -63,6 +64,8 @@ const App = () => {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              {/* Temporary test route for file upload API */}
+              <Route path="/test-upload" element={<TestUploadPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
