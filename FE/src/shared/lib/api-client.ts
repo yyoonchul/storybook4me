@@ -82,4 +82,29 @@ export const apiClient = {
     }
     return response.json();
   },
+
+  async postFormData<T>(endpoint: string, formData: FormData, token?: string): Promise<T> {
+    const url = getApiUrl(endpoint);
+    
+    const headers: Record<string, string> = {};
+    // Do NOT set Content-Type for FormData - browser will set it with boundary
+    
+    const resolvedToken = token ?? (authTokenProvider ? await authTokenProvider() : undefined);
+    if (resolvedToken) {
+      headers['Authorization'] = `Bearer ${resolvedToken}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error((errorData as any).detail || `Request failed (${response.status})`);
+    }
+
+    return response.json();
+  },
 };

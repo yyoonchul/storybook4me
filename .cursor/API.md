@@ -433,21 +433,131 @@ CREATE POLICY "Users can manage own likes"
 * **기능:** 이미지, 오디오 등 다양한 미디어 파일을 업로드하고 관리합니다.
 * **구현 상태:** ❌ 미구현
 
+#### **Request/Response Models**
+
+**Image Upload Request:**
+```typescript
+interface ImageUploadRequest {
+  file: File;                    // 이미지 파일 (FormData)
+  metadata?: {                   // 추가 메타데이터 (선택사항)
+    description?: string;
+    tags?: string[];
+  };
+}
+```
+
+**Image Upload Response:**
+```typescript
+interface ImageUploadResponse {
+  id: string;                    // 파일 고유 ID
+  url: string;                   // 업로드된 파일의 공개 URL
+  filename: string;              // 원본 파일명
+  size: number;                  // 파일 크기 (bytes)
+  mimeType: string;              // MIME 타입
+  uploadedAt: string;            // 업로드 시간 (ISO 8601)
+  metadata?: {                   // 저장된 메타데이터
+    description?: string;
+    tags?: string[];
+  };
+}
+```
+
+**File Delete Response:**
+```typescript
+interface FileDeleteResponse {
+  message: string;               // 삭제 성공 메시지
+  deletedId: string;             // 삭제된 파일 ID
+  deletedAt: string;             // 삭제 시간 (ISO 8601)
+}
+```
+
+**Error Response:**
+```typescript
+interface FileUploadErrorResponse {
+  error: {
+    code: string;                // 에러 코드
+    message: string;             // 에러 메시지
+    details?: {
+      maxSize?: number;          // 최대 파일 크기 제한
+      allowedTypes?: string[];   // 허용된 파일 타입
+      currentSize?: number;       // 현재 파일 크기
+    };
+  };
+}
+```
+
+#### **API Endpoints**
+
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
-| `/api/upload/image` | `POST` | 이미지 파일을 업로드합니다. | `FormData: { file: File, type?: "character" \| "story" }` | `{ url: "https://...", id: "file_id" }` |
-| `/api/upload/delete/{fileId}` | `DELETE` | 업로드된 파일을 삭제합니다. | `Authorization: Bearer {token}` | `{ message: "File deleted successfully" }` |
+| `/api/upload/image` | `POST` | 캐릭터 프로필 이미지를 업로드합니다. | `FormData: { file: File, metadata?: object }` + `Authorization: Bearer {token}` | `ImageUploadResponse` |
+| `/api/upload/delete/{fileId}` | `DELETE` | 업로드된 파일을 삭제합니다. | `Authorization: Bearer {token}` | `FileDeleteResponse` |
 
----
+#### **상세 API 명세**
 
-### **10. 시스템 상태 API (System Status)**
-* **기능:** 서비스 상태, 유지보수 정보 등을 제공합니다.
-* **구현 상태:** ❌ 미구현
+##### **1) 캐릭터 프로필 이미지 업로드**
+- **`POST /api/upload/image`**
+- **설명:** 캐릭터 프로필용 이미지 파일을 서버에 업로드하고 공개 URL을 반환합니다.
+- **Headers:** 
+  - `Authorization: Bearer {token}` (필수)
+  - `Content-Type: multipart/form-data`
+- **Request Body (FormData):**
+  ```typescript
+  {
+    file: File;                    // 필수: 캐릭터 프로필 이미지 파일
+    metadata?: string;              // 선택: JSON 문자열로 메타데이터 전달
+  }
+  ```
+- **Response (200):**
+  ```json
+  {
+    "id": "file_abc123",
+    "url": "https://storage.example.com/images/abc123.jpg",
+    "filename": "character_avatar.jpg",
+    "size": 245760,
+    "mimeType": "image/jpeg",
+    "uploadedAt": "2025-01-15T10:30:00Z",
+    "metadata": {
+      "description": "Main character avatar",
+      "tags": ["avatar", "character"]
+    }
+  }
+  ```
+- **Error Responses:**
+  - `400 Bad Request`: 잘못된 파일 형식 또는 크기 초과
+  - `401 Unauthorized`: 인증 실패
+  - `413 Payload Too Large`: 파일 크기 제한 초과
 
-| **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/health` | `GET` | 서비스 상태를 확인합니다. | - | `{ status: "healthy", timestamp: "2025-01-01T00:00:00Z" }` |
-| `/api/status` | `GET` | 서비스 상태와 알림을 조회합니다. | - | `{ status: "operational", maintenance?: { scheduled: "2025-01-01T02:00:00Z" } }` |
+##### **2) 파일 삭제**
+- **`DELETE /api/upload/delete/{fileId}`**
+- **설명:** 업로드된 파일을 서버에서 삭제합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Path Parameters:**
+  - `fileId`: 삭제할 파일의 고유 ID
+- **Response (200):**
+  ```json
+  {
+    "message": "File deleted successfully",
+    "deletedId": "file_abc123",
+    "deletedAt": "2025-01-15T11:00:00Z"
+  }
+  ```
+- **Error Responses:**
+  - `404 Not Found`: 파일을 찾을 수 없음
+  - `403 Forbidden`: 파일 소유자가 아님
+  - `401 Unauthorized`: 인증 실패
+
+#### **파일 업로드 제한사항**
+
+| **파일 타입** | **최대 크기** | **허용 형식** | **용도** |
+| :--- | :--- | :--- | :--- |
+| 이미지 | 10MB | JPG, JPEG, PNG, WebP, GIF | 캐릭터 프로필 이미지 |
+
+#### **보안 및 검증**
+- 파일 타입 검증: MIME 타입과 확장자 이중 검증
+- 바이러스 스캔: 업로드된 파일의 악성코드 검사
+- 사용자별 할당량: 계정당 최대 저장 용량 제한
+- 자동 정리: 30일 이상 미사용 파일 자동 삭제
 
 ---
 

@@ -393,7 +393,7 @@ CREATE POLICY "Users can manage own chat messages"
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | `id` | `UUID` | `PRIMARY KEY`, `DEFAULT gen_random_uuid()` | 파일 고유 ID |
-| `user_id` | `UUID` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID |
+| `user_id` | `TEXT` | `NOT NULL`, `REFERENCES profiles(id)` | 사용자 ID (Clerk sub) |
 | `file_name` | `TEXT` | `NOT NULL` | 파일명 |
 | `file_size` | `INTEGER` | `NOT NULL` | 파일 크기 (바이트) |
 | `file_type` | `VARCHAR(50)` | `NOT NULL` | 파일 타입 (image, audio, document) |
