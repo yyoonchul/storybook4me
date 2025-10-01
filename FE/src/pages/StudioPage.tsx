@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useStudioTitle } from "../features/studio/hooks/useStudioTitle";
+import { useStudioTitle, usePageText } from "../features/studio/hooks";
+import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useSession } from "@clerk/clerk-react";
 import { Button } from "../shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../shared/components/ui/card";
 import { Input } from "../shared/components/ui/input";
@@ -17,37 +19,7 @@ import {
   Loader2
 } from "lucide-react";
 
-// Mock story data for editing
-const mockStoryData = {
-  id: "1",
-  title: "The Dawn of Nova",
-  pages: [
-    {
-      id: 1,
-      text: "In the year 2157, young Nova gazed out at the stars from her space station home. The twinkling lights seemed to whisper secrets of distant worlds waiting to be discovered.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - happy, spacesuit"],
-      background: "Space station window view",
-      objects: ["stars", "space station interior"]
-    },
-    {
-      id: 2,
-      text: "Nova's robot companion, Zyx, whirred softly beside her. 'The exploration ship arrives tomorrow,' Zyx announced with excitement in his digital voice.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - excited", "Zyx - animated"],
-      background: "Space station room",
-      objects: ["control panels", "holographic displays"]
-    },
-    {
-      id: 3,
-      text: "As the massive exploration vessel docked, Nova felt her heart race with anticipation. This was her chance to explore the unknown regions of the galaxy.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - determined"],
-      background: "Docking bay",
-      objects: ["exploration ship", "docking equipment"]
-    }
-  ]
-};
+// Mock chat history for AI chat feature
 
 const mockChatHistory = [
   { role: "assistant", content: "Hello! I'm your AI storytelling assistant. How would you like to improve your story today?" },
@@ -66,9 +38,65 @@ const StudioPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState(mockChatHistory);
-  const [storyData, setStoryData] = useState(mockStoryData);
+  
   // Title editing (debounced autosave)
   const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
+  
+  // Storybook data - using same approach as BookViewerPage
+  const [storybook, setStorybook] = useState<any>(null);
+  const [isStorybookLoading, setIsStorybookLoading] = useState(true);
+  const [storybookError, setStorybookError] = useState<string | null>(null);
+  const { session, isLoaded } = useSession();
+
+  // Load storybook data
+  useEffect(() => {
+    if (!id || !isLoaded) return;
+    let mounted = true;
+    setIsStorybookLoading(true);
+    setStorybookError(null);
+    (async () => {
+      try {
+        const token = await session?.getToken({ template: 'storybook4me' });
+        const res = await storybookApi.get(id, token || undefined);
+        if (!mounted) return;
+        setStorybook(res.storybook);
+      } catch (e: any) {
+        if (!mounted) return;
+        setStorybookError(e?.message || 'Failed to load storybook');
+      } finally {
+        if (!mounted) return;
+        setIsStorybookLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id, isLoaded, session]);
+  
+  // Current page content editing - using same pattern as title editing
+  const currentPageNumber = storybook?.pages?.[currentPage]?.page_number;
+  const { 
+    text: pageText, 
+    setText: setPageText, 
+    status: pageStatus, 
+    error: pageError, 
+    isFetching: isPageFetching 
+  } = usePageText(id, currentPageNumber || undefined);
+
+  // Reset current page when storybook changes
+  useEffect(() => {
+    if (storybook?.pages?.length && currentPage >= storybook.pages.length) {
+      setCurrentPage(0);
+    }
+  }, [storybook?.pages?.length, currentPage]);
+
+  // Debug: Log storybook data
+  useEffect(() => {
+    if (storybook) {
+      console.log('Storybook loaded:', storybook);
+      console.log('Pages:', storybook.pages);
+    }
+  }, [storybook]);
   const [rightMode, setRightMode] = useState<'preview' | 'settings'>(initialMode === 'settings' ? 'settings' : 'preview');
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -143,11 +171,6 @@ const StudioPage = () => {
     }, 2000);
   };
 
-  const handleTextChange = (newText: string) => {
-    const updatedPages = [...storyData.pages];
-    updatedPages[currentPage] = { ...updatedPages[currentPage], text: newText };
-    setStoryData({ ...storyData, pages: updatedPages });
-  };
 
   const handleFinishStory = () => {
     // Generate new ID for completed story
@@ -361,15 +384,41 @@ const StudioPage = () => {
                     {/* Text Side */}
                     <div className="p-6 flex flex-col justify-center bg-white/50 min-h-0">
                       <div className="text-center lg:text-left">
-                        <p className="text-base leading-relaxed text-gray-700 mb-4">
-                          {storyData.pages[currentPage]?.text}
-                        </p>
-                        
-                        <Separator className="my-4" />
-                        
-                        <div className="text-sm text-muted-foreground">
-                          Page {currentPage + 1} of {storyData.pages.length}
-                        </div>
+                        {isStorybookLoading ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                            <span>Loading storybook...</span>
+                          </div>
+                        ) : storybookError ? (
+                          <div className="text-red-500 text-center py-8">
+                            Error loading storybook: {storybookError}
+                          </div>
+                        ) : (
+                          <>
+                            <Textarea
+                              value={pageText ?? ''}
+                              onChange={(e) => setPageText(e.target.value)}
+                              className="text-base leading-relaxed text-gray-700 mb-4 min-h-[120px] resize-none border-0 bg-transparent p-0 focus:ring-0 focus:border-0"
+                              placeholder="Enter your story text here..."
+                              disabled={isPageFetching}
+                            />
+                            
+                            <Separator className="my-4" />
+                            
+                            <div className="text-sm text-muted-foreground flex justify-between items-center">
+                              <span>Page {currentPage + 1} of {storybook?.pages?.length || 0}</span>
+                              {pageStatus === 'saving' && (
+                                <span className="text-blue-500 text-xs">Saving...</span>
+                              )}
+                              {pageStatus === 'saved' && (
+                                <span className="text-green-500 text-xs">Saved</span>
+                              )}
+                              {pageStatus === 'error' && (
+                                <span className="text-red-500 text-xs">Save failed</span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -387,7 +436,7 @@ const StudioPage = () => {
                     </Button>
                     
                     <div className="flex gap-1">
-                      {storyData.pages.map((_, index) => (
+                      {storybook?.pages?.map((_, index) => (
                         <div
                           key={index}
                           className={`w-2 h-2 rounded-full transition-colors ${
@@ -400,8 +449,8 @@ const StudioPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(Math.min(storyData.pages.length - 1, currentPage + 1))}
-                      disabled={currentPage === storyData.pages.length - 1}
+                      onClick={() => setCurrentPage(Math.min((storybook?.pages?.length || 1) - 1, currentPage + 1))}
+                      disabled={currentPage === (storybook?.pages?.length || 1) - 1}
                     >
                       Next
                       <ChevronRight className="w-4 h-4 ml-1" />
