@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(upload_router, prefix="/api")
     app.include_router(studio_data_router, prefix="/api/studio", tags=["studio"])
     
+    # Removed temporary global validation handler
+    
     # Health check route
     @app.get("/")
     async def health_check():

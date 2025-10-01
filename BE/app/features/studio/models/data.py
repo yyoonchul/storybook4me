@@ -33,11 +33,13 @@ class PageContentResponse(BaseModel):
 
 
 class PageContentUpdateRequest(BaseModel):
-    script_text: Optional[str] = Field(description="Updated page text content")
-    image_prompt: Optional[str] = Field(description="Updated image generation prompt")
-    image_style: Optional[str] = Field(description="Updated image style")
-    character_ids: Optional[List[str]] = Field(description="Updated character IDs")
-    background_description: Optional[str] = Field(description="Updated background description")
+    # NOTE: In Pydantic v2, Optional[...] without a default is still a required field.
+    # To make these fields truly optional (omittable), we must set default=None.
+    script_text: Optional[str] = Field(default=None, description="Updated page text content")
+    image_prompt: Optional[str] = Field(default=None, description="Updated image generation prompt")
+    image_style: Optional[str] = Field(default=None, description="Updated image style")
+    character_ids: Optional[List[str]] = Field(default=None, description="Updated character IDs")
+    background_description: Optional[str] = Field(default=None, description="Updated background description")
 
 
 class MessageResponse(BaseModel):
