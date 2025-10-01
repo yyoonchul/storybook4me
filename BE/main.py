@@ -10,6 +10,7 @@ from app.features.family.api import router as family_router
 from app.features.storybook.api import router as storybook_router
 from app.features.explore.api import router as explore_router
 from app.features.user_file.api import router as upload_router
+from app.features.studio.api.data import router as studio_data_router
 
 
 def create_app() -> FastAPI:
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(storybook_router, prefix="/api/storybooks", tags=["storybooks"])
     app.include_router(explore_router, prefix="/api/explore", tags=["explore"])
     app.include_router(upload_router, prefix="/api")
+    app.include_router(studio_data_router, prefix="/api/studio", tags=["studio"])
     
     # Health check route
     @app.get("/")

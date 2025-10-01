@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useStudioTitle } from "../features/studio/hooks/useStudioTitle";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "../shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../shared/components/ui/card";
@@ -66,6 +67,8 @@ const StudioPage = () => {
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState(mockChatHistory);
   const [storyData, setStoryData] = useState(mockStoryData);
+  // Title editing (debounced autosave)
+  const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
   const [rightMode, setRightMode] = useState<'preview' | 'settings'>(initialMode === 'settings' ? 'settings' : 'preview');
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -197,7 +200,34 @@ const StudioPage = () => {
                 Back
               </Button>
               <div>
-                <h1 className="text-lg font-semibold">{storyData.title}</h1>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={liveTitle ?? ''}
+                    onChange={(e) => setLiveTitle(e.target.value)}
+                    placeholder="Untitled storybook"
+                    className="text-lg font-semibold bg-white/60 border border-gray-300 rounded px-2 py-1 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-colors disabled:opacity-60"
+                    aria-label="Storybook title"
+                    disabled={isTitleFetching}
+                  />
+                  <span
+                    className={
+                      `text-xs min-w-[60px] text-right ` +
+                      (titleStatus === 'saved'
+                        ? 'text-purple-600'
+                        : titleStatus === 'error'
+                        ? 'text-red-600'
+                        : titleStatus === 'saving'
+                        ? 'text-amber-600'
+                        : 'text-muted-foreground')
+                    }
+                  >
+                    {isTitleFetching && 'Loading title...'}
+                    {!isTitleFetching && titleStatus === 'saving' && 'Saving...'}
+                    {titleStatus === 'saved' && 'Saved'}
+                    {titleStatus === 'error' && 'Save failed'}
+                    {titleStatus === 'idle' && 'Saved'}
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">Creation Studio</p>
               </div>
             </div>

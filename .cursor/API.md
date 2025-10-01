@@ -283,6 +283,8 @@ interface DeleteResponse {
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
 |  |  |  |  |  |
+| `/api/studio/storybooks/{storybookId}/title` | `GET` | 특정 동화책의 제목을 불러옵니다. | `Authorization: Bearer {token}` | `{ id: string, title: string }` |
+| `/api/studio/storybooks/{storybookId}/title` | `PUT` | 특정 동화책의 제목을 저장(업데이트)합니다. | `{ title: string }` | `{ id: string, title: string }` |
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
 | `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |
