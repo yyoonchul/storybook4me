@@ -63,4 +63,24 @@ export type StorybookData = {
   pages?: StorybookPage[];
 };
 
+// Page Management Types
+export type AddPageRequest = {
+  content: {
+    script_text?: string;
+    image_prompt?: string;
+    image_style?: string;
+    character_ids?: string[];
+    background_description?: string;
+  };
+};
+
+export type AddPageResponse = {
+  page: PageContent;
+};
+
+export type DeletePageResponse = {
+  message: string;
+  deleted_page_number: number;
+};
+
 

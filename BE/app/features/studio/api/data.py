@@ -4,7 +4,16 @@ Studio API: endpoints for fetching and updating storybook title and page content
 
 from fastapi import APIRouter, Depends
 from app.features.auth.deps import get_current_user_id
-from ..models.data import StorybookTitleResponse, StorybookTitleUpdateRequest, PageContentResponse, PageContentUpdateRequest, MessageResponse
+from ..models.data import (
+    StorybookTitleResponse, 
+    StorybookTitleUpdateRequest, 
+    PageContentResponse, 
+    PageContentUpdateRequest,
+    AddPageRequest,
+    AddPageResponse,
+    DeletePageResponse,
+    MessageResponse
+)
 from ..services.data import studio_data_service
 
 
@@ -29,5 +38,17 @@ async def get_page_content(storybook_id: str, page_number: int, current_user_id:
 @router.put("/storybooks/{storybook_id}/pages/{page_number}", response_model=PageContentResponse)
 async def update_page_content(storybook_id: str, page_number: int, req: PageContentUpdateRequest, current_user_id: str = Depends(get_current_user_id)):
     return studio_data_service.update_page_content(current_user_id, storybook_id, page_number, req)
+
+
+@router.post("/storybooks/{storybook_id}/pages", response_model=AddPageResponse)
+async def add_page(storybook_id: str, req: AddPageRequest, current_user_id: str = Depends(get_current_user_id)):
+    """Add a new page to the end of a storybook."""
+    return studio_data_service.add_page(current_user_id, storybook_id, req)
+
+
+@router.delete("/storybooks/{storybook_id}/pages/{page_number}", response_model=DeletePageResponse)
+async def delete_page(storybook_id: str, page_number: int, current_user_id: str = Depends(get_current_user_id)):
+    """Delete a specific page from a storybook."""
+    return studio_data_service.delete_page(current_user_id, storybook_id, page_number)
 
 

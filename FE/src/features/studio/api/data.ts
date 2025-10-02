@@ -1,5 +1,14 @@
 import { apiClient } from '@/shared/lib/api-client';
-import type { StorybookTitle, UpdateTitleRequest, PageContent, UpdatePageContentRequest, StorybookData } from '../types/data';
+import type { 
+  StorybookTitle, 
+  UpdateTitleRequest, 
+  PageContent, 
+  UpdatePageContentRequest, 
+  StorybookData,
+  AddPageRequest,
+  AddPageResponse,
+  DeletePageResponse
+} from '../types/data';
 
 export const studioDataApi = {
   async getTitle(storybookId: string, token?: string): Promise<StorybookTitle> {
@@ -20,6 +29,15 @@ export const studioDataApi = {
 
   async getStorybook(storybookId: string, token?: string): Promise<StorybookData> {
     return apiClient.get(`/storybooks/${storybookId}`, token);
+  },
+
+  // Page Management APIs
+  async addPage(storybookId: string, req: AddPageRequest, token?: string): Promise<AddPageResponse> {
+    return apiClient.post(`/studio/storybooks/${storybookId}/pages`, req, token);
+  },
+
+  async deletePage(storybookId: string, pageNumber: number, token?: string): Promise<DeletePageResponse> {
+    return apiClient.delete(`/studio/storybooks/${storybookId}/pages/${pageNumber}`, token);
   },
 };
 

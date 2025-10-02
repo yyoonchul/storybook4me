@@ -280,13 +280,63 @@ interface DeleteResponse {
 * **사용 페이지:** `StudioPage`, `MainPage` (스토리 생성 시작)
 * **구현 상태:** ❌ 미구현
 
+#### **📋 페이지 관리 API 상세**
+
+##### **1) 페이지 추가**
+- **`POST /api/studio/storybooks/{storybookId}/pages`**
+- **설명:** 동화책의 맨 끝에 새로운 페이지를 추가합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  ```typescript
+  interface AddPageRequest {
+    content: {
+      scriptText?: string;
+      imagePrompt?: string;
+      imageStyle?: string;
+      characterIds?: string[];
+      backgroundDescription?: string;
+    };
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface AddPageResponse {
+    page: {
+      id: string;
+      pageNumber: number;
+      scriptText?: string;
+      imageUrl?: string;
+      audioUrl?: string;
+      imagePrompt?: string;
+      imageStyle?: string;
+      characterIds?: string[];
+      backgroundDescription?: string;
+      createdAt: string;
+    };
+  }
+  ```
+
+##### **2) 페이지 삭제**
+- **`DELETE /api/studio/storybooks/{storybookId}/pages/{pageNumber}`**
+- **설명:** 특정 페이지를 삭제합니다. 삭제 후 뒤의 페이지들의 번호가 자동으로 재정렬됩니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```typescript
+  interface DeletePageResponse {
+    message: string;
+    deletedPageNumber: number;
+  }
+  ```
+
+
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
-|  |  |  |  |  |
 | `/api/studio/storybooks/{storybookId}/title` | `GET` | 특정 동화책의 제목을 불러옵니다. | `Authorization: Bearer {token}` | `{ id: string, title: string }` |
 | `/api/studio/storybooks/{storybookId}/title` | `PUT` | 특정 동화책의 제목을 저장(업데이트)합니다. | `{ title: string }` | `{ id: string, title: string }` |
+| `/api/studio/storybooks/{storybookId}/pages` | `POST` | 동화책의 맨 끝에 새로운 페이지를 추가합니다. | `{ content: { scriptText?, imagePrompt?, imageStyle?, characterIds?, backgroundDescription? } }` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, createdAt } }` |
 | `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `GET` | 특정 페이지의 콘텐츠를 불러옵니다. | `Authorization: Bearer {token}` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, createdAt } }` |
 | `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `PUT` | 특정 페이지의 콘텐츠를 저장(업데이트)합니다. | `{ scriptText?, imagePrompt?, imageStyle?, characterIds?, backgroundDescription? }` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, updatedAt } }` |
+| `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `DELETE` | 특정 페이지를 삭제합니다. | `Authorization: Bearer {token}` | `{ message: "Page deleted successfully", deletedPageNumber: number }` |
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
 | `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |

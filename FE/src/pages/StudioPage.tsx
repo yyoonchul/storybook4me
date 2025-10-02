@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useStudioTitle, usePageText } from "../features/studio/hooks";
+import { useStudioTitle, usePageText, usePageManagement } from "../features/studio/hooks";
 import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "@clerk/clerk-react";
@@ -10,12 +10,24 @@ import { Textarea } from "../shared/components/ui/textarea";
 import { Separator } from "../shared/components/ui/separator";
 import { ScrollArea } from "../shared/components/ui/scroll-area";
 import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../shared/components/ui/alert-dialog";
+import { 
   ChevronLeft, 
   ChevronRight, 
   Send,
   Wand2,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Plus,
+  Trash2
 } from "lucide-react";
 
 // Mock chat history for AI chat feature
@@ -37,9 +49,13 @@ const StudioPage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [chatHistory, setChatHistory] = useState(mockChatHistory);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Title editing (debounced autosave)
   const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
+  
+  // Page management
+  const { addPage, deletePage, isAdding, isDeleting, error: pageManagementError, clearError } = usePageManagement(id);
   
   // Storybook data - using same approach as BookViewerPage
   const [storybook, setStorybook] = useState<any>(null);
@@ -179,6 +195,57 @@ const StudioPage = () => {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleAddPage = async () => {
+    const newPage = await addPage({
+      script_text: "New page content...",
+      image_prompt: "A beautiful scene",
+      image_style: "watercolor",
+      character_ids: [],
+      background_description: "A peaceful setting"
+    });
+    
+    if (newPage) {
+      // Refresh storybook data to show new page
+      if (id) {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const res = await storybookApi.get(id, token || undefined);
+          setStorybook(res.storybook);
+          // Navigate to the new page
+          setCurrentPage(storybook?.pages?.length || 0);
+        } catch (err) {
+          console.error('Failed to refresh storybook:', err);
+        }
+      }
+    }
+  };
+
+  const handleDeletePage = async (pageNumber: number) => {
+    const success = await deletePage(pageNumber);
+    
+    if (success) {
+      // Refresh storybook data to reflect changes
+      if (id) {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const res = await storybookApi.get(id, token || undefined);
+          setStorybook(res.storybook);
+          // Adjust current page if needed
+          if (currentPage >= (storybook?.pages?.length || 1) - 1) {
+            setCurrentPage(Math.max(0, (storybook?.pages?.length || 1) - 2));
+          }
+        } catch (err) {
+          console.error('Failed to refresh storybook:', err);
+        }
+      }
+    }
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
   };
 
   if (isGenerating && !id) {
@@ -377,7 +444,24 @@ const StudioPage = () => {
                     </div>
 
                     {/* Text Side */}
-                    <div className="p-6 flex flex-col justify-center bg-white/50 min-h-0">
+                    <div className="relative p-6 flex flex-col justify-center bg-white/50 min-h-0">
+                      {/* Delete Page Button */}
+                      {(storybook?.pages?.length || 0) > 1 && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleDeleteClick}
+                          disabled={isDeleting === currentPage + 1}
+                          className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 border-gray-300 hover:border-red-300 text-gray-600 hover:text-red-600 w-8 h-8 transition-colors"
+                        >
+                          {isDeleting === currentPage + 1 ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      )}
+                      
                       <div className="text-center lg:text-left">
                         {isStorybookLoading ? (
                           <div className="flex items-center justify-center py-8">
@@ -402,15 +486,22 @@ const StudioPage = () => {
                             
                             <div className="text-sm text-muted-foreground flex justify-between items-center">
                               <span>Page {currentPage + 1} of {storybook?.pages?.length || 0}</span>
-                              {pageStatus === 'saving' && (
-                                <span className="text-blue-500 text-xs">Saving...</span>
-                              )}
-                              {pageStatus === 'saved' && (
-                                <span className="text-green-500 text-xs">Saved</span>
-                              )}
-                              {pageStatus === 'error' && (
-                                <span className="text-red-500 text-xs">Save failed</span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {pageStatus === 'saving' && (
+                                  <span className="text-blue-500 text-xs">Saving...</span>
+                                )}
+                                {pageStatus === 'saved' && (
+                                  <span className="text-green-500 text-xs">Saved</span>
+                                )}
+                                {pageStatus === 'error' && (
+                                  <span className="text-red-500 text-xs">Save failed</span>
+                                )}
+                                {pageManagementError && (
+                                  <span className="text-red-500 text-xs cursor-pointer" onClick={clearError}>
+                                    Page error: {pageManagementError}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </>
                         )}
@@ -420,15 +511,27 @@ const StudioPage = () => {
 
                   {/* Navigation */}
                   <div className="p-4 bg-white/80 backdrop-blur-sm border-t flex justify-between items-center flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                      disabled={currentPage === 0}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Previous
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                        disabled={currentPage === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.min((storybook?.pages?.length || 1) - 1, currentPage + 1))}
+                        disabled={currentPage === (storybook?.pages?.length || 1) - 1}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
                     
                     <div className="flex gap-1">
                       {storybook?.pages?.map((_, index) => (
@@ -444,11 +547,16 @@ const StudioPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(Math.min((storybook?.pages?.length || 1) - 1, currentPage + 1))}
-                      disabled={currentPage === (storybook?.pages?.length || 1) - 1}
+                      onClick={handleAddPage}
+                      disabled={isAdding}
+                      className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800"
                     >
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                      {isAdding ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-1" />
+                      )}
+                      Add Page
                     </Button>
                   </div>
                 </CardContent>
@@ -623,6 +731,27 @@ const StudioPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Delete Page Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this page?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The page will be permanently removed from your storybook.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDeletePage(currentPage + 1)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Page
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

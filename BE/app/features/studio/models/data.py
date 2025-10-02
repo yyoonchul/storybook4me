@@ -46,3 +46,30 @@ class MessageResponse(BaseModel):
     message: str
 
 
+# Page Management Models
+class AddPageRequest(BaseModel):
+    content: dict = Field(description="Page content with optional fields")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "content": {
+                    "script_text": "Once upon a time...",
+                    "image_prompt": "A magical forest scene",
+                    "image_style": "watercolor",
+                    "character_ids": ["uuid1", "uuid2"],
+                    "background_description": "A peaceful forest with tall trees"
+                }
+            }
+        }
+
+
+class AddPageResponse(BaseModel):
+    page: PageContentResponse = Field(description="Created page details")
+
+
+class DeletePageResponse(BaseModel):
+    message: str = Field(description="Deletion confirmation message")
+    deleted_page_number: int = Field(description="Number of the deleted page")
+
+
