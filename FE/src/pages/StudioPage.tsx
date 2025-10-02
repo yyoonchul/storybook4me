@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useStudioTitle, usePageText, usePageManagement } from "../features/studio/hooks";
+import { useStudioTitle, usePageText, usePageManagement, useCharacterSelection } from "../features/studio/hooks";
 import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "@clerk/clerk-react";
@@ -29,6 +29,7 @@ import {
   Plus,
   Trash2
 } from "lucide-react";
+import { CharacterSelection } from "../features/studio/components/CharacterSelection";
 
 // Mock chat history for AI chat feature
 
@@ -56,6 +57,20 @@ const StudioPage = () => {
   
   // Page management
   const { addPage, deletePage, isAdding, isDeleting, error: pageManagementError, clearError } = usePageManagement(id);
+  
+  // Character selection
+  const {
+    myCharacters,
+    presetCharacters,
+    selectedCharacters,
+    isLoading: isCharactersLoading,
+    error: charactersError,
+    toggleCharacter,
+    isCharacterSelected,
+    clearSelection,
+    selectAll,
+    loadCharacters
+  } = useCharacterSelection();
   
   // Storybook data - using same approach as BookViewerPage
   const [storybook, setStorybook] = useState<any>(null);
@@ -635,37 +650,17 @@ const StudioPage = () => {
                     )}
 
                     {settingsTab === 'characters' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Characters</h4>
-                          <div className="flex flex-wrap gap-3">
-                            <div className="relative bg-white rounded-lg p-3 border shadow-sm min-w-[140px]">
-                              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                                <img src="/placeholder.svg" alt="Nova" className="w-10 h-10 rounded-full" />
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm font-medium">Nova</div>
-                                <div className="text-xs text-muted-foreground">Main Character</div>
-                              </div>
-                              <button className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 flex items-center justify-center">×</button>
-                            </div>
-                            <div className="relative bg-white rounded-lg p-3 border shadow-sm min-w-[140px]">
-                              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-                                <img src="/placeholder.svg" alt="Zyx" className="w-10 h-10 rounded-full" />
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm font-medium">Zyx</div>
-                                <div className="text-xs text-muted-foreground">Robot Companion</div>
-                              </div>
-                              <button className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 flex items-center justify-center">×</button>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 mt-3">
-                            <Button variant="outline" size="sm" className="flex-1">👥 Select from My Family</Button>
-                            <Button variant="outline" size="sm">+ Create</Button>
-                          </div>
-                        </div>
-                      </>
+                      <CharacterSelection
+                        myCharacters={myCharacters}
+                        presetCharacters={presetCharacters}
+                        selectedCharacters={selectedCharacters}
+                        isLoading={isCharactersLoading}
+                        error={charactersError}
+                        onToggleCharacter={toggleCharacter}
+                        onClearSelection={clearSelection}
+                        onSelectAll={selectAll}
+                        onLoadCharacters={loadCharacters}
+                      />
                     )}
 
                     {settingsTab === 'style' && (
