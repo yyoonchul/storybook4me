@@ -27,9 +27,14 @@ import {
   ArrowLeft,
   Loader2,
   Plus,
-  Trash2
+  Trash2,
+  User
 } from "lucide-react";
-import { CharacterSelection } from "../features/studio/components/CharacterSelection";
+import { CharacterSelectionModal } from "../features/studio/components/CharacterSelectionModal";
+import { MainConceptSection } from "../features/studio/components/MainConceptSection";
+import { SelectedCharactersSection } from "../features/studio/components/SelectedCharactersSection";
+import { ArtStyleCarousel } from "../features/studio/components/ArtStyleCarousel";
+import { StorybookPreview } from "../features/studio/components/StorybookPreview";
 
 // Mock chat history for AI chat feature
 
@@ -71,6 +76,17 @@ const StudioPage = () => {
     selectAll,
     loadCharacters
   } = useCharacterSelection();
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
+  // Art style carousel state
+  const [artStyleIndex, setArtStyleIndex] = useState(0);
+  const artCarouselRef = useRef<HTMLDivElement | null>(null);
+
+  // Load characters on modal open (handles token timing and 403 retry in hook)
+  useEffect(() => {
+    if (showCharacterModal && (myCharacters.length === 0 && presetCharacters.length === 0) && !isCharactersLoading) {
+      loadCharacters();
+    }
+  }, [showCharacterModal]);
   
   // Storybook data - using same approach as BookViewerPage
   const [storybook, setStorybook] = useState<any>(null);
@@ -316,11 +332,11 @@ const StudioPage = () => {
                   className={
                     `text-xs min-w-[60px] text-right ` +
                     (titleStatus === 'saved'
-                      ? 'text-purple-600'
+                      ? 'text-purple-700'
                       : titleStatus === 'error'
                       ? 'text-red-600'
                       : titleStatus === 'saving'
-                      ? 'text-amber-600'
+                      ? 'text-purple-400'
                       : 'text-muted-foreground')
                   }
                 >
@@ -442,87 +458,20 @@ const StudioPage = () => {
             {rightMode === 'preview' ? (
               <Card className="glass-effect flex-1 overflow-hidden min-h-0">
                 <CardContent className="p-0 h-full flex flex-col min-h-0">
-                  {/* Preview Book Page */}
-                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0">
-                    {/* Image Side */}
-                    <div className="relative bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center p-6 min-h-0">
-                      <div className="aspect-square w-full max-w-xs">
-                        <img 
-                          src={'/placeholder.svg'} 
-                          alt={`Preview`}
-                          className="w-full h-full object-cover rounded-lg shadow-lg"
-                        />
-                      </div>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-full border shadow">
-                        This is a preview image. Actual images will be custom-generated.
-                      </div>
-                    </div>
-
-                    {/* Text Side */}
-                    <div className="relative p-6 flex flex-col justify-center bg-white/50 min-h-0">
-                      {/* Delete Page Button */}
-                      {(storybook?.pages?.length || 0) > 1 && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleDeleteClick}
-                          disabled={isDeleting === currentPage + 1}
-                          className="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 border-gray-300 hover:border-red-300 text-gray-600 hover:text-red-600 w-8 h-8 transition-colors"
-                        >
-                          {isDeleting === currentPage + 1 ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
-                      )}
-                      
-                      <div className="text-center lg:text-left">
-                        {isStorybookLoading ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                            <span>Loading storybook...</span>
-                          </div>
-                        ) : storybookError ? (
-                          <div className="text-red-500 text-center py-8">
-                            Error loading storybook: {storybookError}
-                          </div>
-                        ) : (
-                          <>
-                            <Textarea
-                              value={pageText ?? ''}
-                              onChange={(e) => setPageText(e.target.value)}
-                              className="text-base leading-relaxed text-gray-700 mb-4 min-h-[120px] resize-none border-0 bg-transparent p-0 focus:ring-0 focus:border-0"
-                              placeholder="Enter your story text here..."
-                              disabled={isPageFetching}
-                            />
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="text-sm text-muted-foreground flex justify-between items-center">
-                              <span>Page {currentPage + 1} of {storybook?.pages?.length || 0}</span>
-                              <div className="flex items-center gap-2">
-                                {pageStatus === 'saving' && (
-                                  <span className="text-blue-500 text-xs">Saving...</span>
-                                )}
-                                {pageStatus === 'saved' && (
-                                  <span className="text-green-500 text-xs">Saved</span>
-                                )}
-                                {pageStatus === 'error' && (
-                                  <span className="text-red-500 text-xs">Save failed</span>
-                                )}
-                                {pageManagementError && (
-                                  <span className="text-red-500 text-xs cursor-pointer" onClick={clearError}>
-                                    Page error: {pageManagementError}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <StorybookPreview
+                    storybook={storybook}
+                    currentPage={currentPage}
+                    isLoading={isStorybookLoading}
+                    error={storybookError}
+                    pageText={pageText}
+                    setPageText={setPageText}
+                    isPageFetching={isPageFetching}
+                    onDeleteClick={handleDeleteClick}
+                    isDeleting={isDeleting}
+                    pageStatus={pageStatus}
+                    pageManagementError={pageManagementError}
+                    clearError={clearError}
+                  />
 
                   {/* Navigation */}
                   <div className="p-4 bg-white/80 backdrop-blur-sm border-t flex justify-between items-center flex-shrink-0">
@@ -579,146 +528,18 @@ const StudioPage = () => {
             ) : (
               <Card className="glass-effect flex-1 overflow-hidden min-h-0">
                 <CardContent className="p-0 h-full flex flex-col min-h-0">
-                  {/* Floating settings menu */}
-                  <div className="sticky top-0 z-10 px-4 pt-4">
-                    <div ref={settingsMenuRef} className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden">
-                      <span
-                        className="absolute inset-y-1 rounded-full bg-purple-500/15 border border-purple-400/30 transition-all duration-300 ease-out"
-                        style={{ left: settingsHighlight.left + 4, width: Math.max(0, settingsHighlight.width - 8) }}
-                        aria-hidden
-                      />
-                      <button
-                        ref={synopsisBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'synopsis'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'synopsis'}
-                        onClick={() => setSettingsTab('synopsis')}
-                      >
-                        Synopsis
-                      </button>
-                      <button
-                        ref={charactersBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'characters'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'characters'}
-                        onClick={() => setSettingsTab('characters')}
-                      >
-                        Characters
-                      </button>
-                      <button
-                        ref={styleBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'style'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'style'}
-                        onClick={() => setSettingsTab('style')}
-                      >
-                        Style
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-auto p-6 space-y-6">
-                    {settingsTab === 'synopsis' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Main Concept</h4>
-                          <Textarea
-                            defaultValue={prompt || "A brave young explorer discovers magical worlds beyond the stars"}
-                            className="min-h-[80px] resize-none w-full max-w-full"
-                            placeholder="Enter your main story concept..."
-                          />
-                        </div>
-                        <Separator />
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Story Synopsis</h4>
-                          <Textarea
-                            defaultValue="Nova, a young space explorer, embarks on an incredible journey through the galaxy with her robot companion Zyx. Together, they discover new worlds, face exciting challenges, and learn valuable lessons about friendship and courage."
-                            className="min-h-[100px] resize-none w-full max-w-full"
-                            placeholder="Write an overall synopsis of your story..."
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {settingsTab === 'characters' && (
-                      <CharacterSelection
-                        myCharacters={myCharacters}
-                        presetCharacters={presetCharacters}
-                        selectedCharacters={selectedCharacters}
-                        isLoading={isCharactersLoading}
-                        error={charactersError}
-                        onToggleCharacter={toggleCharacter}
-                        onClearSelection={clearSelection}
-                        onSelectAll={selectAll}
-                        onLoadCharacters={loadCharacters}
-                      />
-                    )}
-
-                    {settingsTab === 'style' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Art Style</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button className="relative p-3 border-2 border-purple-500 bg-purple-50 rounded-lg text-left overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-purple-200 to-pink-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Watercolor Fantasy" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Watercolor Fantasy</div>
-                              <div className="text-xs text-muted-foreground">Soft, dreamy illustrations</div>
-                            </div>
-                          </div>
-                          <div className="absolute top-2 right-2 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-blue-200 to-green-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Digital Cartoon" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Digital Cartoon</div>
-                              <div className="text-xs text-muted-foreground">Bright, colorful style</div>
-                            </div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Realistic Art" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Realistic Art</div>
-                              <div className="text-xs text-muted-foreground">Detailed, lifelike images</div>
-                            </div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Minimalist" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Minimalist</div>
-                              <div className="text-xs text-muted-foreground">Simple, clean designs</div>
-                            </div>
-                          </div>
-                        </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                  <div className="flex-1 overflow-auto p-6 space-y-8">
+                    {/* Unified Settings: 3 sections */}
+                    <MainConceptSection prompt={prompt} />
+                    <Separator />
+                    <SelectedCharactersSection
+                      myCharacters={myCharacters}
+                      presetCharacters={presetCharacters}
+                      selectedCharacters={selectedCharacters}
+                      onOpenModal={() => setShowCharacterModal(true)}
+                    />
+                    <Separator />
+                    <ArtStyleCarousel />
                   </div>
                 </CardContent>
               </Card>
@@ -747,6 +568,21 @@ const StudioPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Character Selection Modal */}
+      <CharacterSelectionModal
+        open={showCharacterModal}
+        onOpenChange={setShowCharacterModal}
+        myCharacters={myCharacters}
+        presetCharacters={presetCharacters}
+        selectedCharacters={selectedCharacters}
+        isLoading={isCharactersLoading}
+        error={charactersError}
+        onToggleCharacter={toggleCharacter}
+        onClearSelection={clearSelection}
+        onSelectAll={selectAll}
+        onLoadCharacters={loadCharacters}
+      />
     </div>
   );
 };

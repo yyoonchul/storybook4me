@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession } from '@clerk/clerk-react';
 import { familyApi } from '../../family/api';
 import { Character } from '../../family/types/character';
@@ -11,27 +11,34 @@ export function useCharacterSelection() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load characters on mount
-  useEffect(() => {
-    loadCharacters();
-  }, []);
-
   const loadCharacters = async () => {
     setIsLoading(true);
     setError(null);
-    
-    try {
+
+    const fetchOnce = async () => {
       const token = await session?.getToken({ template: 'storybook4me' });
-      
-      // Load user's characters
-      const myCharactersResponse = await familyApi.getCharacters({ include_presets: false }, token);
+      // Load user's characters (requires auth)
+      const myCharactersResponse = await familyApi.getCharacters({ include_presets: false }, token || undefined);
       setMyCharacters(myCharactersResponse.characters);
-      
-      // Load preset characters
+      // Load preset characters (public)
       const presetResponse = await familyApi.getPresetCharacters();
       setPresetCharacters(presetResponse.presets);
+    };
+
+    try {
+      try {
+        await fetchOnce();
+      } catch (err: any) {
+        const status = err?.status || err?.response?.status;
+        if (status === 403) {
+          // Retry once after re-acquiring token
+          await fetchOnce();
+        } else {
+          throw err;
+        }
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load characters');
+      setError(err?.message || 'Failed to load characters');
     } finally {
       setIsLoading(false);
     }
