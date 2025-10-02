@@ -41,8 +41,8 @@ const BookViewerPage = () => {
       if (!mounted) return;
       const sb = res.storybook;
       const pages: ViewerPage[] = (sb.pages || []).map((p: any) => ({
-        id: p.id,
-        text: p.script_text,
+        id: p.id || `page-${Math.random()}`,
+        text: p.script_text || "No content available",
         imageUrl: p.image_url || '/cover.png',
       }));
       // Some responses may use camelCase userId; fall back to snake_case if present
@@ -61,7 +61,7 @@ const BookViewerPage = () => {
   };
 
   const handleNextPage = () => {
-    if (story && currentPage < story.pages.length - 1) {
+    if (story && story.pages && currentPage < story.pages.length - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -104,7 +104,17 @@ const BookViewerPage = () => {
     );
   }
 
-  const currentPageData = story.pages[currentPage];
+  // 현재 페이지 데이터를 안전하게 가져오기
+  const currentPageData = story.pages && story.pages.length > 0 && currentPage < story.pages.length 
+    ? story.pages[currentPage] 
+    : null;
+
+  // 안전한 기본값 설정
+  const safeCurrentPageData = currentPageData || {
+    id: `page-${currentPage}`,
+    text: "No content available",
+    imageUrl: "/cover.png"
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50">
@@ -147,9 +157,13 @@ const BookViewerPage = () => {
                   <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center p-8">
                     <div className="aspect-square w-full max-w-sm">
                       <img 
-                        src={currentPageData.imageUrl} 
+                        src={safeCurrentPageData.imageUrl || "/cover.png"} 
                         alt={`Page ${currentPage + 1}`}
                         className="w-full h-full object-cover rounded-lg shadow-lg"
+                        onError={(e) => {
+                          // 이미지 로드 실패 시 기본 이미지로 대체
+                          e.currentTarget.src = "/cover.png";
+                        }}
                       />
                     </div>
                   </div>
@@ -158,7 +172,7 @@ const BookViewerPage = () => {
                   <div className="p-8 flex flex-col justify-center relative">
                     <div className="text-center lg:text-left">
                       <div className="text-base sm:text-lg leading-relaxed text-gray-700 mb-6">
-                        {currentPageData.text}
+                        {safeCurrentPageData.text}
                       </div>
                       <Button
                         variant="outline"
@@ -175,9 +189,9 @@ const BookViewerPage = () => {
                       <Separator className="my-6" />
                       
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Page {currentPage + 1} of {story.pages.length}</span>
+                        <span>Page {currentPage + 1} of {story.pages?.length || 0}</span>
                         <div className="flex gap-1">
-                          {story.pages.map((_, index) => (
+                          {(story.pages || []).map((_, index) => (
                             <div
                               key={index}
                               className={`w-2 h-2 rounded-full transition-colors ${
@@ -211,7 +225,7 @@ const BookViewerPage = () => {
                 variant="outline"
                 size="icon"
                 onClick={handleNextPage}
-                disabled={currentPage === story.pages.length - 1}
+                disabled={currentPage === (story.pages?.length || 0) - 1}
                 className="w-12 h-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -233,7 +247,7 @@ const BookViewerPage = () => {
               <Button
                 variant="outline"
                 onClick={handleNextPage}
-                disabled={currentPage === story.pages.length - 1}
+                disabled={currentPage === (story.pages?.length || 0) - 1}
                 className="flex items-center gap-2"
               >
                 Next

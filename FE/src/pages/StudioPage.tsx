@@ -10,7 +10,6 @@ import { Textarea } from "../shared/components/ui/textarea";
 import { Separator } from "../shared/components/ui/separator";
 import { ScrollArea } from "../shared/components/ui/scroll-area";
 import { 
-  Sparkles, 
   ChevronLeft, 
   ChevronRight, 
   Send,
@@ -222,42 +221,38 @@ const StudioPage = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <input
-                    value={liveTitle ?? ''}
-                    onChange={(e) => setLiveTitle(e.target.value)}
-                    placeholder="Untitled storybook"
-                    className="text-lg font-semibold bg-white/60 border border-gray-300 rounded px-2 py-1 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-colors disabled:opacity-60"
-                    aria-label="Storybook title"
-                    disabled={isTitleFetching}
-                  />
-                  <span
-                    className={
-                      `text-xs min-w-[60px] text-right ` +
-                      (titleStatus === 'saved'
-                        ? 'text-purple-600'
-                        : titleStatus === 'error'
-                        ? 'text-red-600'
-                        : titleStatus === 'saving'
-                        ? 'text-amber-600'
-                        : 'text-muted-foreground')
-                    }
-                  >
-                    {isTitleFetching && 'Loading title...'}
-                    {!isTitleFetching && titleStatus === 'saving' && 'Saving...'}
-                    {titleStatus === 'saved' && 'Saved'}
-                    {titleStatus === 'error' && 'Save failed'}
-                    {titleStatus === 'idle' && 'Saved'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">Creation Studio</p>
+              <div className="flex items-center gap-2">
+                <input
+                  value={liveTitle ?? ''}
+                  onChange={(e) => setLiveTitle(e.target.value)}
+                  placeholder="Untitled storybook"
+                  className="text-lg font-semibold bg-white/60 border border-gray-300 rounded px-2 py-1 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-colors disabled:opacity-60"
+                  aria-label="Storybook title"
+                  disabled={isTitleFetching}
+                />
+                <span
+                  className={
+                    `text-xs min-w-[60px] text-right ` +
+                    (titleStatus === 'saved'
+                      ? 'text-purple-600'
+                      : titleStatus === 'error'
+                      ? 'text-red-600'
+                      : titleStatus === 'saving'
+                      ? 'text-amber-600'
+                      : 'text-muted-foreground')
+                  }
+                >
+                  {isTitleFetching && 'Loading title...'}
+                  {!isTitleFetching && titleStatus === 'saving' && 'Saving...'}
+                  {titleStatus === 'saved' && 'Saved'}
+                  {titleStatus === 'error' && 'Save failed'}
+                  {titleStatus === 'idle' && 'Saved'}
+                </span>
               </div>
             </div>
             
             <Button onClick={handleFinishStory} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Create Storybook
+              Save Storybook
             </Button>
           </div>
         </div>
