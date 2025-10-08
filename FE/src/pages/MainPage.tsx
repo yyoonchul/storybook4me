@@ -127,9 +127,16 @@ const MainPage = () => {
     }
     const token = await session?.getToken({ template: 'storybook4me' });
     try {
-      const response = await storybookApi.create({ title: storyPrompt || '', characterIds: [], theme: '', style: '', pageCount: 0, prompt: '' }, token || undefined);
+      const response = await storybookApi.create({ 
+        title: '', 
+        characterIds: [], 
+        theme: '', 
+        style: '', 
+        pageCount: 0, 
+        prompt: storyPrompt || '' 
+      }, token || undefined);
       // 생성된 스토리북 ID로 리다이렉트
-      navigate(`/studio/${response.storybook.id}?mode=settings`);
+      navigate(`/studio/${response.storybook.id}?mode=settings&prompt=${encodeURIComponent(storyPrompt || '')}`);
     } catch (_) {
       // noop
     }

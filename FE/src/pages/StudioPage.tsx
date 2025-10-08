@@ -36,13 +36,19 @@ import { SelectedCharactersSection } from "../features/studio/components/Selecte
 import { ArtStyleCarousel } from "../features/studio/components/ArtStyleCarousel";
 import { StorybookPreview } from "../features/studio/components/StorybookPreview";
 
-// Mock chat history for AI chat feature
-
-const mockChatHistory = [
-  { role: "assistant", content: "Hello! I'm your AI storytelling assistant. How would you like to improve your story today?" },
-  { role: "user", content: "Make Nova look more excited in the first page" },
-  { role: "assistant", content: "Great idea! I've updated Nova's expression to show more excitement. Her eyes are now sparkling with wonder as she looks at the stars. Would you like me to adjust anything else?" }
-];
+// Initial chat messages based on access method
+const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
+  switch (accessType) {
+    case 'prompt':
+      return "Great! I can see your story idea. Now let's bring it to life! Choose your characters and art style to get started.";
+    case 'create':
+      return "Welcome to your story studio! First, tell me about your main concept, then we'll pick characters and art style together.";
+    case 'edit':
+      return "Ready to enhance your story? Tell me what you'd like to change - characters, scenes, dialogue, or anything else!";
+    default:
+      return "Hello! I'm your AI storytelling assistant. How would you like to improve your story today?";
+  }
+};
 
 const StudioPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,8 +60,40 @@ const StudioPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState(mockChatHistory);
+  
+  // Determine access type and set initial chat message
+  const getAccessType = (): 'prompt' | 'create' | 'edit' => {
+    // URL에 prompt 파라미터가 있으면 프롬프트로 진입
+    if (prompt) return 'prompt';
+    // mode=settings 파라미터가 있으면 새로 생성된 스토리 (Create New)
+    if (initialMode === 'settings') return 'create';
+    // ID가 있으면 기존 스토리 편집
+    if (id) return 'edit';
+    // 그 외는 Create New
+    return 'create';
+  };
+  
+  const [chatHistory, setChatHistory] = useState<Array<{ role: "assistant" | "user"; content: string }>>([
+    { role: "assistant", content: getInitialChatMessage(getAccessType()) }
+  ]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // Determine which section to highlight based on access type
+  const getHighlightedSection = () => {
+    const accessType = getAccessType();
+    switch (accessType) {
+      case 'prompt':
+        return 'characters'; // 프롬프트로 진입하면 캐릭터 선택부터
+      case 'create':
+        return 'concept'; // Create New로 진입하면 메인 콘셉부터
+      case 'edit':
+        return null; // Edit은 하이라이트 없음
+      default:
+        return null;
+    }
+  };
+  
+  const highlightedSection = getHighlightedSection();
   
   // Title editing (debounced autosave)
   const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
@@ -223,7 +261,7 @@ const StudioPage = () => {
         try {
           const token = await session?.getToken({ template: 'storybook4me' });
           const response = await storybookApi.create({ 
-            title: prompt, 
+            title: '', 
             characterIds: [], 
             theme: '', 
             style: '', 
@@ -582,16 +620,22 @@ const StudioPage = () => {
                   <ScrollArea className="flex-1 h-0">
                     <div className="p-6 space-y-8">
                       {/* Unified Settings: 3 sections */}
-                      <MainConceptSection prompt={prompt} />
+                      <MainConceptSection 
+                        prompt={prompt} 
+                        isHighlighted={highlightedSection === 'concept'}
+                      />
                       <Separator />
                       <SelectedCharactersSection
                         myCharacters={myCharacters}
                         presetCharacters={presetCharacters}
                         selectedCharacters={selectedCharacters}
                         onOpenModal={() => setShowCharacterModal(true)}
+                        isHighlighted={highlightedSection === 'characters'}
                       />
                       <Separator />
-                      <ArtStyleCarousel />
+                      <ArtStyleCarousel 
+                        isHighlighted={highlightedSection === 'characters'}
+                      />
                     </div>
                   </ScrollArea>
                 </CardContent>

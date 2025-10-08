@@ -8,15 +8,16 @@ type SelectedCharactersSectionProps = {
   presetCharacters: Character[];
   selectedCharacters: string[];
   onOpenModal: () => void;
+  isHighlighted?: boolean;
 };
 
-export function SelectedCharactersSection({ myCharacters, presetCharacters, selectedCharacters, onOpenModal }: SelectedCharactersSectionProps) {
+export function SelectedCharactersSection({ myCharacters, presetCharacters, selectedCharacters, onOpenModal, isHighlighted = false }: SelectedCharactersSectionProps) {
   const all = [...(myCharacters || []), ...(presetCharacters || [])];
   const byId = new Map(all.map(c => [c.id, c] as const));
   const selected = selectedCharacters.map(id => byId.get(id)).filter(Boolean) as Character[];
 
   return (
-    <section>
+    <section className={`${isHighlighted ? 'ring-2 ring-purple-400 ring-opacity-50 rounded-lg p-4' : ''}`}>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-base font-semibold">Characters</h4>
         <Button
