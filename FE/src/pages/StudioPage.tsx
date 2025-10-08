@@ -309,9 +309,9 @@ const StudioPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50 overflow-hidden">
       {/* Top Bar */}
-      <div className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+      <div className="border-b bg-white/80 backdrop-blur-sm flex-shrink-0 z-40">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -356,16 +356,16 @@ const StudioPage = () => {
         </div>
       </div>
 
-      <main className="flex-1 flex overflow-hidden min-h-0">
+      <main className="flex-1 flex overflow-hidden h-0">
         {/* Left Panel - Editor */}
-        <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col min-h-0">
+        <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
           <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
             <h3 className="text-sm font-semibold">AI Storyteller</h3>
           </div>
 
-          <div className="flex-1 overflow-hidden min-h-0">
+          <div className="flex-1 overflow-hidden h-0">
             <div className="h-full flex flex-col">
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 p-4 h-0">
                 <div className="space-y-4">
                   {chatHistory.map((message, index) => (
                     <div
@@ -417,47 +417,55 @@ const StudioPage = () => {
         </div>
 
         {/* Right Panel - Live Preview */}
-        <div className="w-[70%] bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col min-h-0">
+        <div className="w-[70%] bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col h-full overflow-hidden">
           <div className="p-4 border-b bg-white/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
             <div>
               <h3 className="text-lg font-semibold">{rightMode === 'preview' ? 'Live Preview' : 'Story Settings'}</h3>
               <p className="text-sm text-muted-foreground">{rightMode === 'preview' ? 'See your changes in real-time' : 'Review and edit global story settings'}</p>
             </div>
-            <div className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden">
+            <div 
+              className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+              onClick={() => setRightMode(rightMode === 'preview' ? 'settings' : 'preview')}
+              role="switch"
+              aria-checked={rightMode === 'settings'}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setRightMode(rightMode === 'preview' ? 'settings' : 'preview');
+                }
+              }}
+            >
               <span
                 className="absolute inset-y-1 left-1 rounded-full bg-purple-500/15 border border-purple-400/30 transition-transform duration-300 ease-out"
                 style={{ width: 'calc(50% - 0.25rem)', transform: `translateX(${rightMode === 'preview' ? '0%' : '100%'})` }}
                 aria-hidden
               />
-              <button
-                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
+              <div
+                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 ${
                   rightMode === 'preview'
                     ? 'text-purple-700'
-                    : 'hover:bg-gray-100 active:scale-[0.98]'
+                    : 'text-gray-600'
                 }`}
-                aria-pressed={rightMode === 'preview'}
-                onClick={() => setRightMode('preview')}
               >
                 Preview
-              </button>
-              <button
-                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
+              </div>
+              <div
+                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 ${
                   rightMode === 'settings'
                     ? 'text-purple-700'
-                    : 'hover:bg-gray-100 active:scale-[0.98]'
+                    : 'text-gray-600'
                 }`}
-                aria-pressed={rightMode === 'settings'}
-                onClick={() => setRightMode('settings')}
               >
                 Settings
-              </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 p-4 flex flex-col min-h-0">
+          <div className="flex-1 p-4 flex flex-col h-0 overflow-hidden">
             {rightMode === 'preview' ? (
-              <Card className="glass-effect flex-1 overflow-hidden min-h-0">
-                <CardContent className="p-0 h-full flex flex-col min-h-0">
+              <Card className="glass-effect flex-1 overflow-hidden h-full">
+                <CardContent className="p-0 h-full flex flex-col overflow-hidden">
                   <StorybookPreview
                     storybook={storybook}
                     currentPage={currentPage}
@@ -526,21 +534,23 @@ const StudioPage = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="glass-effect flex-1 overflow-hidden min-h-0">
-                <CardContent className="p-0 h-full flex flex-col min-h-0">
-                  <div className="flex-1 overflow-auto p-6 space-y-8">
-                    {/* Unified Settings: 3 sections */}
-                    <MainConceptSection prompt={prompt} />
-                    <Separator />
-                    <SelectedCharactersSection
-                      myCharacters={myCharacters}
-                      presetCharacters={presetCharacters}
-                      selectedCharacters={selectedCharacters}
-                      onOpenModal={() => setShowCharacterModal(true)}
-                    />
-                    <Separator />
-                    <ArtStyleCarousel />
-                  </div>
+              <Card className="glass-effect flex-1 overflow-hidden h-full">
+                <CardContent className="p-0 h-full flex flex-col overflow-hidden">
+                  <ScrollArea className="flex-1 h-0">
+                    <div className="p-6 space-y-8">
+                      {/* Unified Settings: 3 sections */}
+                      <MainConceptSection prompt={prompt} />
+                      <Separator />
+                      <SelectedCharactersSection
+                        myCharacters={myCharacters}
+                        presetCharacters={presetCharacters}
+                        selectedCharacters={selectedCharacters}
+                        onOpenModal={() => setShowCharacterModal(true)}
+                      />
+                      <Separator />
+                      <ArtStyleCarousel />
+                    </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             )}
