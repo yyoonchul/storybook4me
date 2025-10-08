@@ -49,7 +49,10 @@ export function BookshelfSection() {
                 <Edit3 className="w-4 h-4" />
                 Edit
               </Button>
-              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={async () => { await createStorybook(''); navigate('/studio?mode=settings'); }}>
+              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={async () => { 
+                const response = await createStorybook(''); 
+                navigate(`/studio/${response.storybook.id}?mode=settings`); 
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create New
               </Button>

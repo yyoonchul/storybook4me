@@ -22,7 +22,7 @@ class PublicStorybookSummary(BaseModel):
     cover_image_url: Optional[str] = Field(None, alias="coverImageUrl")
     author: AuthorInfo
     category: Optional[str] = None
-    tags: List[str] = []
+    tags: Optional[List[str]] = None
     like_count: int = Field(0, alias="likeCount")
     view_count: int = Field(0, alias="viewCount")
     page_count: int = Field(0, alias="pageCount")

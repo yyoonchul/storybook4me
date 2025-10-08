@@ -114,13 +114,13 @@ const ExplorePage = () => {
                 </a>
               </div>
             </div>
-          ) : stories.length === 0 ? (
+          ) : !stories || stories.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">No stories found. Try adjusting your filters.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stories.map((story) => (
+              {stories?.map((story) => (
                 <StoryCard key={story.id} story={story} />
               ))}
             </div>

@@ -143,7 +143,34 @@ const StudioPage = () => {
       console.log('Pages:', storybook.pages);
     }
   }, [storybook]);
-  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(initialMode === 'settings' ? 'settings' : 'preview');
+  // 접근 방법에 따른 초기 모드 결정
+  const getInitialMode = (): 'preview' | 'settings' => {
+    // URL 파라미터로 명시적으로 설정된 경우
+    if (initialMode === 'settings') return 'settings';
+    if (initialMode === 'preview') return 'preview';
+    
+    // 프롬프트가 있으면 새 스토리 생성 → settings 모드
+    if (prompt) return 'settings';
+    
+    // id가 있으면 기존 스토리 편집 → preview 모드
+    if (id) return 'preview';
+    
+    // 기본값은 settings (새 스토리 생성)
+    return 'settings';
+  };
+  
+  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(getInitialMode());
+  
+  // 디버깅: 접근 방법과 초기 모드 로그
+  useEffect(() => {
+    console.log('Studio access method:', {
+      prompt: !!prompt,
+      id: !!id,
+      initialMode,
+      determinedMode: getInitialMode(),
+      accessType: prompt ? 'prompt_input' : id ? 'existing_story' : 'bookshelf_create'
+    });
+  }, [prompt, id, initialMode]);
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const synopsisBtnRef = useRef<HTMLButtonElement>(null);
@@ -188,14 +215,30 @@ const StudioPage = () => {
     };
   }, []);
 
-  // Simulate initial generation if there's a prompt
+  // Create new storybook if there's a prompt but no ID
   useEffect(() => {
     if (prompt && !id) {
       setIsGenerating(true);
-      const timer = setTimeout(() => setIsGenerating(false), 3000);
-      return () => clearTimeout(timer);
+      (async () => {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const response = await storybookApi.create({ 
+            title: prompt, 
+            characterIds: [], 
+            theme: '', 
+            style: '', 
+            pageCount: 0, 
+            prompt: prompt 
+          }, token || undefined);
+          // 생성된 스토리북 ID로 리다이렉트
+          navigate(`/studio/${response.storybook.id}?mode=settings`, { replace: true });
+        } catch (error) {
+          console.error('Failed to create storybook:', error);
+          setIsGenerating(false);
+        }
+      })();
     }
-  }, [prompt, id]);
+  }, [prompt, id, session, navigate]);
 
   const handleSendMessage = () => {
     if (!chatMessage.trim()) return;
