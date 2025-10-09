@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from '../../../shared/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const STYLES = [
+export const STYLES = [
   { title: 'Watercolor Fantasy', desc: 'Soft, dreamy illustrations', gradient: 'from-purple-200 to-pink-200' },
   { title: 'Digital Cartoon', desc: 'Bright, colorful style', gradient: 'from-blue-200 to-green-200' },
   { title: 'Realistic Art', desc: 'Detailed, lifelike images', gradient: 'from-gray-200 to-gray-300' },
@@ -11,13 +11,22 @@ const STYLES = [
 
 interface ArtStyleCarouselProps {
   isHighlighted?: boolean;
+  readOnly?: boolean;
+  selectedIndex?: number;
+  onIndexChange?: (index: number) => void;
 }
 
-export function ArtStyleCarousel({ isHighlighted = false }: ArtStyleCarouselProps) {
-  const [index, setIndex] = useState(0);
+export function ArtStyleCarousel({ isHighlighted = false, readOnly = false, selectedIndex, onIndexChange }: ArtStyleCarouselProps) {
+  const [internalIndex, setInternalIndex] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
 
+  // Use controlled index if provided, otherwise use internal state
+  const index = selectedIndex !== undefined ? selectedIndex : internalIndex;
+  const setIndex = onIndexChange || setInternalIndex;
+
   const scrollTo = (i: number) => {
+    if (readOnly) return; // Prevent scrolling in read-only mode
+    
     // 무한 캐러셀: 범위를 벗어나면 순환
     const totalCards = STYLES.length;
     let newIndex = i;
@@ -110,9 +119,10 @@ export function ArtStyleCarousel({ isHighlighted = false }: ArtStyleCarouselProp
                       : absOffset === 1
                       ? 'border border-gray-300 shadow-lg hover:shadow-xl'
                       : 'border border-gray-200 shadow-md hover:shadow-lg'
-                  }`}
-                  onClick={() => scrollTo(idx)}
+                  } ${readOnly ? 'cursor-default' : ''}`}
+                  onClick={() => !readOnly && scrollTo(idx)}
                   aria-current={isSelected}
+                  disabled={readOnly}
                   style={{
                     width: widthPercent,
                     maxWidth: maxWidthValue,
@@ -148,36 +158,41 @@ export function ArtStyleCarousel({ isHighlighted = false }: ArtStyleCarouselProp
         </div>
 
         {/* 네비게이션 버튼 */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-[60]">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 bg-white shadow-md hover:shadow-lg"
-            onClick={() => scrollTo(index - 1)}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-        </div>
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-[60]">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 bg-white shadow-md hover:shadow-lg"
-            onClick={() => scrollTo(index + 1)}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
+        {!readOnly && (
+          <>
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-[60]">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white shadow-md hover:shadow-lg"
+                onClick={() => scrollTo(index - 1)}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-[60]">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 bg-white shadow-md hover:shadow-lg"
+                onClick={() => scrollTo(index + 1)}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </>
+        )}
 
         {/* 인디케이터 */}
         <div className="flex items-center justify-center gap-2 mt-6">
           {STYLES.map((_, i) => (
             <button
               key={i}
-              onClick={() => scrollTo(i)}
+              onClick={() => !readOnly && scrollTo(i)}
+              disabled={readOnly}
               className={`h-2 w-2 rounded-full transition-all duration-300 ${
                 index === i ? 'bg-purple-600 w-6' : 'bg-gray-300 hover:bg-gray-400'
-              }`}
+              } ${readOnly ? 'cursor-default' : ''}`}
               aria-label={`Go to slide ${i + 1}`}
             />
           ))}

@@ -33,8 +33,10 @@ import {
 import { CharacterSelectionModal } from "../features/studio/components/CharacterSelectionModal";
 import { MainConceptSection } from "../features/studio/components/MainConceptSection";
 import { SelectedCharactersSection } from "../features/studio/components/SelectedCharactersSection";
-import { ArtStyleCarousel } from "../features/studio/components/ArtStyleCarousel";
+import { ArtStyleCarousel, STYLES } from "../features/studio/components/ArtStyleCarousel";
 import { StorybookPreview } from "../features/studio/components/StorybookPreview";
+import { GenerateButton } from "../features/studio/components/GenerateButton";
+import { useToast } from "../shared/hooks/use-toast";
 
 // Initial chat messages based on access method
 const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
@@ -60,6 +62,9 @@ const StudioPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
+  const [mainConcept, setMainConcept] = useState(prompt || "");
+  const [hasGenerated, setHasGenerated] = useState(false); // Track if generation has been initiated
+  const { toast } = useToast();
   
   // Determine access type and set initial chat message
   const getAccessType = (): 'prompt' | 'create' | 'edit' => {
@@ -131,6 +136,11 @@ const StudioPage = () => {
   const [isStorybookLoading, setIsStorybookLoading] = useState(true);
   const [storybookError, setStorybookError] = useState<string | null>(null);
   const { session, isLoaded } = useSession();
+  
+  // Determine if this is first-time setup (no pages yet)
+  // Only calculate when storybook data is loaded, otherwise assume loading
+  // Also check if generation has been initiated - once generated, it's no longer first-time setup
+  const isFirstTimeSetup = storybook !== null && (!storybook?.pages || storybook.pages.length === 0) && !hasGenerated;
 
   // Load storybook data
   useEffect(() => {
@@ -181,12 +191,23 @@ const StudioPage = () => {
       console.log('Pages:', storybook.pages);
     }
   }, [storybook]);
-  // 접근 방법에 따른 초기 모드 결정
+  // 접근 방법에 따른 초기 모드 결정 (based on pages existence)
   const getInitialMode = (): 'preview' | 'settings' => {
     // URL 파라미터로 명시적으로 설정된 경우
     if (initialMode === 'settings') return 'settings';
     if (initialMode === 'preview') return 'preview';
     
+    // If we have loaded storybook data, check pages
+    if (storybook !== null) {
+      // If pages exist, start with preview (editing mode)
+      if (storybook.pages && storybook.pages.length > 0) {
+        return 'preview';
+      }
+      // No pages, start with settings (first-time setup)
+      return 'settings';
+    }
+    
+    // While loading, default based on access method
     // 프롬프트가 있으면 새 스토리 생성 → settings 모드
     if (prompt) return 'settings';
     
@@ -197,18 +218,29 @@ const StudioPage = () => {
     return 'settings';
   };
   
-  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(getInitialMode());
+  const [rightMode, setRightMode] = useState<'preview' | 'settings'>('settings');
   
-  // 디버깅: 접근 방법과 초기 모드 로그
+  // Set initial mode based on storybook pages
   useEffect(() => {
-    console.log('Studio access method:', {
-      prompt: !!prompt,
-      id: !!id,
-      initialMode,
-      determinedMode: getInitialMode(),
-      accessType: prompt ? 'prompt_input' : id ? 'existing_story' : 'bookshelf_create'
-    });
-  }, [prompt, id, initialMode]);
+    if (storybook !== null) {
+      const mode = getInitialMode();
+      const hasPages = storybook.pages && storybook.pages.length > 0;
+      setRightMode(mode);
+      
+      // If storybook already has pages, mark as generated
+      if (hasPages) {
+        setHasGenerated(true);
+      }
+      
+      console.log('Studio workflow state:', {
+        hasPages,
+        pageCount: storybook.pages?.length || 0,
+        isFirstTimeSetup: !hasPages && !hasGenerated,
+        initialMode: mode,
+        accessType: prompt ? 'prompt_input' : id ? 'existing_story' : 'bookshelf_create'
+      });
+    }
+  }, [storybook]);
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const synopsisBtnRef = useRef<HTMLButtonElement>(null);
@@ -360,6 +392,34 @@ const StudioPage = () => {
     setShowDeleteDialog(true);
   };
 
+  const handleGenerate = () => {
+    console.log('Generate clicked with settings:', {
+      mainConcept,
+      selectedCharacters,
+      selectedArtStyle: STYLES[artStyleIndex]
+    });
+    
+    // Mark as generated - this will hide the button and make settings read-only
+    setHasGenerated(true);
+    
+    // 임시 토스트 메시지
+    toast({
+      title: "Generating Story",
+      description: "Your storybook is being created...",
+    });
+    
+    // TODO: 여기에 실제 생성 API 호출이 들어갈 예정
+    // Example:
+    // setIsGenerating(true);
+    // const response = await generateStorybook({ mainConcept, selectedCharacters, artStyle: STYLES[artStyleIndex] });
+    // setIsGenerating(false);
+    
+    // Preview 모드로 전환하여 UX 플로우 시연
+    setTimeout(() => {
+      setRightMode('preview');
+    }, 500);
+  };
+
   if (isGenerating && !id) {
   return (
     <div className="min-h-screen flex flex-col">
@@ -477,6 +537,16 @@ const StudioPage = () => {
                 </div>
               </ScrollArea>
 
+              {isFirstTimeSetup && !isStorybookLoading && (
+                <div className="px-4 py-3 border-t bg-purple-50/50 flex-shrink-0">
+                  <GenerateButton 
+                    variant="chat"
+                    onClick={handleGenerate}
+                    disabled={!mainConcept.trim()}
+                  />
+                </div>
+              )}
+
               <div className="p-4 border-t flex-shrink-0">
                 <div className="flex gap-2">
                   <Input
@@ -490,7 +560,7 @@ const StudioPage = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Try: "Make the character happier" or "Add a rainbow in the background"
+                  Try: "Make the rabbit playful" or "Change to watercolor style"
                 </p>
               </div>
             </div>
@@ -501,8 +571,22 @@ const StudioPage = () => {
         <div className="w-[70%] bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col h-full overflow-hidden">
           <div className="p-4 border-b bg-white/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
             <div>
-              <h3 className="text-lg font-semibold">{rightMode === 'preview' ? 'Live Preview' : 'Story Settings'}</h3>
-              <p className="text-sm text-muted-foreground">{rightMode === 'preview' ? 'See your changes in real-time' : 'Review and edit global story settings'}</p>
+              <h3 className="text-lg font-semibold">
+                {rightMode === 'preview' ? 'Live Preview' : 'Story Settings'}
+                {rightMode === 'settings' && !isFirstTimeSetup && !isStorybookLoading && (
+                  <span className="text-sm text-muted-foreground ml-2">(View Only)</span>
+                )}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {rightMode === 'preview' 
+                  ? 'See your changes in real-time' 
+                  : isStorybookLoading 
+                    ? 'Loading story settings...' 
+                    : isFirstTimeSetup 
+                      ? 'Configure your story settings to generate' 
+                      : 'Review global story settings'
+                }
+              </p>
             </div>
             <div 
               className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
@@ -617,27 +701,73 @@ const StudioPage = () => {
             ) : (
               <Card className="glass-effect flex-1 overflow-hidden h-full">
                 <CardContent className="p-0 h-full flex flex-col overflow-hidden">
-                  <ScrollArea className="flex-1 h-0">
-                    <div className="p-6 space-y-8">
-                      {/* Unified Settings: 3 sections */}
-                      <MainConceptSection 
-                        prompt={prompt} 
-                        isHighlighted={highlightedSection === 'concept'}
-                      />
-                      <Separator />
-                      <SelectedCharactersSection
-                        myCharacters={myCharacters}
-                        presetCharacters={presetCharacters}
-                        selectedCharacters={selectedCharacters}
-                        onOpenModal={() => setShowCharacterModal(true)}
-                        isHighlighted={highlightedSection === 'characters'}
-                      />
-                      <Separator />
-                      <ArtStyleCarousel 
-                        isHighlighted={highlightedSection === 'characters'}
-                      />
+                  {isStorybookLoading ? (
+                    // Loading skeleton
+                    <div className="p-6 space-y-8 animate-pulse">
+                      {/* Main Concept Skeleton */}
+                      <div>
+                        <div className="h-5 w-32 bg-gray-200 rounded mb-3"></div>
+                        <div className="h-24 w-full bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="h-px bg-gray-200"></div>
+                      
+                      {/* Characters Skeleton */}
+                      <div>
+                        <div className="h-5 w-24 bg-gray-200 rounded mb-3"></div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          <div className="h-20 bg-gray-200 rounded"></div>
+                          <div className="h-20 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                      <div className="h-px bg-gray-200"></div>
+                      
+                      {/* Art Style Skeleton */}
+                      <div>
+                        <div className="h-5 w-20 bg-gray-200 rounded mb-3"></div>
+                        <div className="h-48 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
-                  </ScrollArea>
+                  ) : (
+                    <>
+                      <ScrollArea className="flex-1 h-0">
+                        <div className="p-6 space-y-8">
+                          {/* Unified Settings: 3 sections */}
+                          <MainConceptSection 
+                            prompt={prompt}
+                            onChange={setMainConcept}
+                            isHighlighted={highlightedSection === 'concept'}
+                            readOnly={!isFirstTimeSetup}
+                          />
+                          <Separator />
+                          <SelectedCharactersSection
+                            myCharacters={myCharacters}
+                            presetCharacters={presetCharacters}
+                            selectedCharacters={selectedCharacters}
+                            onOpenModal={() => setShowCharacterModal(true)}
+                            isHighlighted={highlightedSection === 'characters'}
+                            readOnly={!isFirstTimeSetup}
+                          />
+                          <Separator />
+                          <ArtStyleCarousel 
+                            isHighlighted={highlightedSection === 'characters'}
+                            readOnly={!isFirstTimeSetup}
+                            selectedIndex={artStyleIndex}
+                            onIndexChange={setArtStyleIndex}
+                          />
+                        </div>
+                      </ScrollArea>
+                      
+                      {isFirstTimeSetup && (
+                        <div className="p-4 border-t bg-white/80 backdrop-blur-sm flex-shrink-0">
+                          <GenerateButton 
+                            variant="settings"
+                            onClick={handleGenerate}
+                            disabled={!mainConcept.trim()}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
