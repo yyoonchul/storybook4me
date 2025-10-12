@@ -1,74 +1,208 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from enum import Enum
-
-class ArcType(str, Enum):
-    """아크 타입 정의"""
-    INTRODUCTION = "introduction"  # 1막: 도입
-    DEVELOPMENT = "development"    # 2막: 전개  
-    CLIMAX = "climax"             # 3막: 절정
-    RESOLUTION = "resolution"     # 3막: 결말
-
-class Spread(BaseModel):
-    """개별 스프레드 정보"""
-    spread_number: int = Field(..., description="스프레드 번호 (1-14)")
-    page_numbers: str = Field(..., description="페이지 번호 범위 (예: '1-2', '3-4')")
-    arc_type: ArcType = Field(..., description="3막 구조 분류")
-    narrative_stage: str = Field(..., description="서사 단계 및 기능 설명")
-    page_turn_strategy: str = Field(..., description="페이지 턴 전략 및 시사점")
-    
-class Event(BaseModel):
-    """이벤트 정보"""
-    event_number: int = Field(..., description="이벤트 번호")
-    description: str = Field(..., description="이벤트 설명")
-    spread_numbers: List[int] = Field(..., description="해당 이벤트가 포함된 스프레드 번호들")
-    emotional_tone: str = Field(..., description="감정적 톤 (예: 평온, 긴장, 절망, 희망)")
-    visual_key_moments: List[str] = Field(..., description="주요 시각적 순간들")
+from typing import List, Optional, Dict, Any
+from datetime import datetime
 
 class Arc(BaseModel):
-    """개별 아크 정보"""
-    arc_number: int = Field(..., description="아크 번호")
-    arc_type: ArcType = Field(..., description="아크 타입")
-    description: str = Field(..., description="아크 설명")
-    start_spread: int = Field(..., description="시작 스프레드 번호")
-    end_spread: int = Field(..., description="종료 스프레드 번호")
-    events: List[Event] = Field(..., description="해당 아크에 포함된 이벤트들")
-    emotional_arc: str = Field(..., description="감정적 여정")
-    key_turning_points: List[str] = Field(..., description="주요 전환점들")
+    """3-Act Structure Arc"""
+    act_number: int = Field(..., description="Act number (1, 2, 3)")
+    act_name: str = Field(..., description="Act name")
+    description: str = Field(..., description="Act description")
 
-class StoryArcSchema(BaseModel):
-    """스토리북 아크 생성 스키마 - 14개 스프레드 구조 기반"""
-    
-    # 기본 정보
-    title: str = Field(..., description="스토리북 제목")
-    main_theme: str = Field(..., description="주요 테마")
-    target_age: str = Field(..., description="대상 연령")
-    
-    # 메인 갈등
-    main_conflict: str = Field(..., description="주요 갈등 상황")
-    conflict_resolution: str = Field(..., description="갈등 해결 방향")
-    
-    # 14개 스프레드 구조
-    spreads: List[Spread] = Field(..., description="14개 스프레드 정보", min_items=14, max_items=14)
-    
-    # 5개 주요 아크
-    arcs: List[Arc] = Field(..., description="5개 주요 아크", min_items=5, max_items=5)
-    
-    # 10개 핵심 이벤트
-    events: List[Event] = Field(..., description="10개 핵심 이벤트", min_items=10, max_items=10)
-    
-    # 페이지 턴 전략
-    page_turn_hooks: List[str] = Field(..., description="각 페이지 턴에서의 갈고리 요소들")
-    
-    # 시각적 연출 포인트
-    visual_highlights: List[str] = Field(..., description="시각적으로 강조할 포인트들")
-    
-    # 감정적 여정
-    emotional_journey: str = Field(..., description="전체적인 감정적 여정 요약")
-    
-    # 교육적 메시지
-    educational_message: Optional[str] = Field(None, description="전달하고자 하는 교육적 메시지")
-    
-    # 스토리 완성도 검증
-    story_coherence: str = Field(..., description="스토리 일관성 및 완성도")
-    pacing_analysis: str = Field(..., description="페이싱 분석 및 최적화 포인트")
+class Spread(BaseModel):
+    """14-Spread Structure"""
+    spread_number: int = Field(..., description="Spread number (1-14)")
+    description: str = Field(..., description="Spread description")
+    act_number: int = Field(..., description="Which act this spread belongs to")
+
+class ThreeActStructure(BaseModel):
+    """3-Act Structure with predefined acts"""
+    acts: List[Arc] = Field(default=[
+        Arc(
+            act_number=1,
+            act_name="Setup",
+            description="Character/Background Introduction + Peaceful Daily Life"
+        ),
+        Arc(
+            act_number=2,
+            act_name="Confrontation",
+            description="Development and Crisis Escalation"
+        ),
+        Arc(
+            act_number=3,
+            act_name="Resolution",
+            description="Climax and Resolution"
+        )
+    ], description="Predefined 3-act structure")
+
+class FourteenSpreadStructure(BaseModel):
+    """14-Spread Structure with predefined spreads"""
+    spreads: List[Spread] = Field(default=[
+        Spread(
+            spread_number=1,
+            description="Character/Background Introduction + Peaceful Daily Life - Introduction of protagonist (e.g., little bear 'Pobi') and his happy daily space (e.g., honey-filled forest house) to help readers feel comfortable and immersed. First spread of the story that captures reader's attention with warm and attractive illustrations. Page 2 subtly hints at anticipation for the next spread (new events).",
+            act_number=1
+        ),
+        Spread(
+            spread_number=2,
+            description="Small Problem/Desire Discovery in Peace - A desire or problem that creates a small crack in the protagonist's daily life is first revealed. Page 4 reveals the discovery (e.g., empty honey pot) and transitions to next spread (pages 5-6) showing character's reaction (disappointment, frustration) to induce empathy.",
+            act_number=1
+        ),
+        Spread(
+            spread_number=4,
+            description="Inciting Incident + Goal Setting - Clear goal setting to solve the problem. The trigger for the protagonist to start acting. Page 6 shows the decision, and transitioning to next spread (pages 7-8) shows preparation or first steps for adventure, foreshadowing transition to Act 2.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=5,
+            description="First Attempt (Failure 1) - The protagonist makes a first attempt to solve the problem but encounters unexpected difficulties and fails. Page 8 shows attempt full of expectation, and transitioning to next spread (pages 9-10) shows failure with visual reversal of slipping, creating pity.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=6,
+            description="Frustration and New Information/Conflict Deepening - Frustration from the first failure. However, not giving up completely, recognizing new clues for the next attempt or more intensified conflict situation. Page 10 shows aftermath of failure, and transitioning to next spread (pages 11-12) presents turning point discovering new helper or clue for next attempt.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=7,
+            description="Second Attempt (Failure 2) - A bolder or different strategy than the first attempt, but still fails. The situation becomes more complex or tension rises. Page 12 shows new attempt, and transitioning to next spread (pages 13-14) creates dramatic moment with unexpected strong obstacle (angry bees) appearing.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=8,
+            description="Crisis Escalation / Before Emotional Low Point - Deep frustration from consecutive failures. The moment when 'What should I do now?' thoughts arise. But recalling reasons why one cannot give up. Page 14 shows greatest frustration, and transitioning to next spread (pages 15-16) visually presents turning point discovering small but hopeful 'sparkling something' for next attempt.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=9,
+            description="Third Attempt Preparation/New Idea - Gaining new ideas from frustration or preparing for the final attempt based on what was learned from past failures. Page 16 shows discovery of new idea, and transitioning to next spread (pages 17-18) shows specific plan or action to realize that idea, building anticipation to climax.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=10,
+            description="Third Attempt (Most Daring Attempt) - The most important and daring attempt using all experiences and courage accumulated so far. Page 18 shows new attempt, and transitioning to next spread (pages 19-20) creates tension about the result.",
+            act_number=2
+        ),
+        Spread(
+            spread_number=11,
+            description="Pre-Climax Tension - Waiting, moments of near success, or the appearance of final obstacles as tension reaches its peak. Page 20 shows possibility of failure, making readers anxious, and transitioning to next spread (pages 21-22) creates dramatic moment with finally hearing sound of hope.",
+            act_number=3
+        ),
+        Spread(
+            spread_number=12,
+            description="Climax - Problem Solving Moment - The moment when the protagonist's efforts bear fruit. The most dramatic and moving scene. Page 22 finally shows bees arriving, bringing happiness and relief, and transitioning to next spread (pages 23-24) provides visual satisfaction of honey filling up.",
+            act_number=3
+        ),
+        Spread(
+            spread_number=13,
+            description="Resolution - Reward and Realization - The scene where the problem is solved and the protagonist receives rewards or gains new insights. Page 24 shows character's happiness while eating honey, and transitioning to next spread (pages 25-26) visually hints at theme of 'sharing'.",
+            act_number=3
+        ),
+        Spread(
+            spread_number=14,
+            description="New Daily Life / Showing Growth - Showing the protagonist's changed appearance or new daily life after the problem is solved, suggesting growth. Pages 25-26 are composed of large peaceful and happy atmosphere images. Designed to leave warm aftertaste of the story for a long time.",
+            act_number=3
+        )
+    ], description="Predefined 14-spread structure")
+
+# JSON Schema Examples:
+
+# ThreeActStructure Example:
+"""
+{
+    "acts": [
+        {
+            "act_number": 1,
+            "act_name": "Setup",
+            "description": "Character/Background Introduction + Peaceful Daily Life"
+        },
+        {
+            "act_number": 2,
+            "act_name": "Confrontation",
+            "description": "Development and Crisis Escalation"
+        },
+        {
+            "act_number": 3,
+            "act_name": "Resolution",
+            "description": "Climax and Resolution"
+        }
+    ]
+}
+"""
+
+# FourteenSpreadStructure Example:
+"""
+{
+    "spreads": [
+        {
+            "spread_number": 1,
+            "description": "Character/Background Introduction + Peaceful Daily Life - Introduction of protagonist (e.g., little bear 'Pobi') and his happy daily space (e.g., honey-filled forest house) to help readers feel comfortable and immersed. First spread of the story that captures reader's attention with warm and attractive illustrations. Page 2 subtly hints at anticipation for the next spread (new events).",
+            "act_number": 1
+        },
+        {
+            "spread_number": 2,
+            "description": "Small Problem/Desire Discovery in Peace - A desire or problem that creates a small crack in the protagonist's daily life is first revealed. Page 4 reveals the discovery (e.g., empty honey pot) and transitions to next spread (pages 5-6) showing character's reaction (disappointment, frustration) to induce empathy.",
+            "act_number": 1
+        },
+        {
+            "spread_number": 3,
+            "description": "Character introduction and peaceful daily life continuation - Establishing the protagonist's world and routine before introducing the main conflict.",
+            "act_number": 1
+        },
+        {
+            "spread_number": 4,
+            "description": "Inciting Incident + Goal Setting - Clear goal setting to solve the problem. The trigger for the protagonist to start acting. Page 6 shows the decision, and transitioning to next spread (pages 7-8) shows preparation or first steps for adventure, foreshadowing transition to Act 2.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 5,
+            "description": "First Attempt (Failure 1) - The protagonist makes a first attempt to solve the problem but encounters unexpected difficulties and fails. Page 8 shows attempt full of expectation, and transitioning to next spread (pages 9-10) shows failure with visual reversal of slipping, creating pity.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 6,
+            "description": "Frustration and New Information/Conflict Deepening - Frustration from the first failure. However, not giving up completely, recognizing new clues for the next attempt or more intensified conflict situation. Page 10 shows aftermath of failure, and transitioning to next spread (pages 11-12) presents turning point discovering new helper or clue for next attempt.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 7,
+            "description": "Second Attempt (Failure 2) - A bolder or different strategy than the first attempt, but still fails. The situation becomes more complex or tension rises. Page 12 shows new attempt, and transitioning to next spread (pages 13-14) creates dramatic moment with unexpected strong obstacle (angry bees) appearing.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 8,
+            "description": "Crisis Escalation / Before Emotional Low Point - Deep frustration from consecutive failures. The moment when 'What should I do now?' thoughts arise. But recalling reasons why one cannot give up. Page 14 shows greatest frustration, and transitioning to next spread (pages 15-16) visually presents turning point discovering small but hopeful 'sparkling something' for next attempt.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 9,
+            "description": "Third Attempt Preparation/New Idea - Gaining new ideas from frustration or preparing for the final attempt based on what was learned from past failures. Page 16 shows discovery of new idea, and transitioning to next spread (pages 17-18) shows specific plan or action to realize that idea, building anticipation to climax.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 10,
+            "description": "Third Attempt (Most Daring Attempt) - The most important and daring attempt using all experiences and courage accumulated so far. Page 18 shows new attempt, and transitioning to next spread (pages 19-20) creates tension about the result.",
+            "act_number": 2
+        },
+        {
+            "spread_number": 11,
+            "description": "Pre-Climax Tension - Waiting, moments of near success, or the appearance of final obstacles as tension reaches its peak. Page 20 shows possibility of failure, making readers anxious, and transitioning to next spread (pages 21-22) creates dramatic moment with finally hearing sound of hope.",
+            "act_number": 3
+        },
+        {
+            "spread_number": 12,
+            "description": "Climax - Problem Solving Moment - The moment when the protagonist's efforts bear fruit. The most dramatic and moving scene. Page 22 finally shows bees arriving, bringing happiness and relief, and transitioning to next spread (pages 23-24) provides visual satisfaction of honey filling up.",
+            "act_number": 3
+        },
+        {
+            "spread_number": 13,
+            "description": "Resolution - Reward and Realization - The scene where the problem is solved and the protagonist receives rewards or gains new insights. Page 24 shows character's happiness while eating honey, and transitioning to next spread (pages 25-26) visually hints at theme of 'sharing'.",
+            "act_number": 3
+        },
+        {
+            "spread_number": 14,
+            "description": "New Daily Life / Showing Growth - Showing the protagonist's changed appearance or new daily life after the problem is solved, suggesting growth. Pages 25-26 are composed of large peaceful and happy atmosphere images. Designed to leave warm aftertaste of the story for a long time.",
+            "act_number": 3
+        }
+    ]
+}
+"""
