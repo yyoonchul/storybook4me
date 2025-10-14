@@ -1,15 +1,27 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class SpreadScript(BaseModel):
     """Spread Script - 2 pages per spread"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "additionalProperties": False
+        }
+    )
+    
     spread_number: int = Field(..., description="Spread number (1-14)")
     script_1: str = Field(..., description="Script for page 1, considering the last sentence of the previous page")
     script_2: str = Field(..., description="Script for page 2, considering page turn strategy")
 
 class FinalScriptSchema(BaseModel):
     """Final Script Schema - 14 spreads with complete story"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "additionalProperties": False
+        }
+    )
+    
     storybook_id: str = Field(..., description="Storybook ID")
     user_id: str = Field(..., description="User ID")
     

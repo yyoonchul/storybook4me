@@ -95,3 +95,8 @@ def get_claude_models() -> list[str]:
     """Get all available Claude model aliases."""
     return list(CLAUDE_MODELS.keys())
 
+
+# Default model for rewrite operations
+DEFAULT_REWRITE_PROVIDER = "openai"
+DEFAULT_REWRITE_MODEL = "gpt-5-mini"
+
