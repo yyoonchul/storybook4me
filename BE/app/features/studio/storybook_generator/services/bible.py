@@ -61,7 +61,18 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
             schema=StoryBibleSchema
         )
         
-        return result.parsed
+        story_bible = result.parsed
+        
+        # Save the generated bible to creation_params
+        updated_creation_params = creation_params.copy()
+        updated_creation_params["bible"] = story_bible.model_dump()
+        
+        # Update the database
+        supabase.table("storybooks").update({
+            "creation_params": updated_creation_params
+        }).eq("id", storybook_id).execute()
+        
+        return story_bible
         
     except Exception as e:
         if isinstance(e, ValueError):

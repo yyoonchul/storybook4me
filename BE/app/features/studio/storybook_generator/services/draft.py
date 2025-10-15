@@ -57,10 +57,27 @@ def generate_final_script(storybook_id: str) -> FinalScriptSchema:
         prompt_template = _load_prompt_template("draft.md")
         formatted_prompt = prompt_template.replace("{{user_input}}", user_input)
         
-        # For now, use empty strings for story_bible and story_arc placeholders
-        # TODO: Extract story_bible and story_arc from creation_params in future implementation
-        formatted_prompt = formatted_prompt.replace("{{story_bible}}", "")
-        formatted_prompt = formatted_prompt.replace("{{story_arc}}", "")
+        # Extract story_bible and story_arc from creation_params if available
+        story_bible_text = ""
+        if "bible" in creation_params:
+            bible_data = creation_params["bible"]
+            story_bible_text = f"Characters: {', '.join([char.get('character_name', '') for char in bible_data.get('characters', [])])}\n"
+            story_bible_text += f"Setting: {bible_data.get('name', '')} - {bible_data.get('description', '')}\n"
+            story_bible_text += f"Theme: {bible_data.get('main_theme', '')}\n"
+            story_bible_text += f"Conflict: {bible_data.get('main_conflict', '')}"
+        
+        story_arc_text = ""
+        if "arc" in creation_params:
+            arc_data = creation_params["arc"]
+            story_arc_text = f"3-Act Structure:\n"
+            for act in arc_data.get('acts', []):
+                story_arc_text += f"Act {act.get('act_number', '')}: {act.get('act_name', '')} - {act.get('description', '')}\n"
+            story_arc_text += f"\n14-Spread Structure:\n"
+            for spread in arc_data.get('spreads', []):
+                story_arc_text += f"Spread {spread.get('spread_number', '')}: {spread.get('description', '')}\n"
+        
+        formatted_prompt = formatted_prompt.replace("{{story_bible}}", story_bible_text)
+        formatted_prompt = formatted_prompt.replace("{{story_arc}}", story_arc_text)
         
         # Generate structured output
         result = generate_structured(

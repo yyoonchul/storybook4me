@@ -53,9 +53,17 @@ def generate_story_arc(storybook_id: str) -> StoryArcSchema:
         prompt_template = _load_prompt_template("arc.md")
         formatted_prompt = prompt_template.replace("{{user_input}}", user_input)
         
-        # For now, use empty string for story_bible placeholder
-        # TODO: Extract story_bible from creation_params in future implementation
-        formatted_prompt = formatted_prompt.replace("{{story_bible}}", "")
+        # Extract story_bible from creation_params if available
+        story_bible_text = ""
+        if "bible" in creation_params:
+            bible_data = creation_params["bible"]
+            # Convert bible data to a readable text format
+            story_bible_text = f"Characters: {', '.join([char.get('character_name', '') for char in bible_data.get('characters', [])])}\n"
+            story_bible_text += f"Setting: {bible_data.get('name', '')} - {bible_data.get('description', '')}\n"
+            story_bible_text += f"Theme: {bible_data.get('main_theme', '')}\n"
+            story_bible_text += f"Conflict: {bible_data.get('main_conflict', '')}"
+        
+        formatted_prompt = formatted_prompt.replace("{{story_bible}}", story_bible_text)
         
         # Generate structured output
         result = generate_structured(
@@ -65,7 +73,18 @@ def generate_story_arc(storybook_id: str) -> StoryArcSchema:
             schema=StoryArcSchema
         )
         
-        return result.parsed
+        story_arc = result.parsed
+        
+        # Save the generated arc to creation_params
+        updated_creation_params = creation_params.copy()
+        updated_creation_params["arc"] = story_arc.model_dump()
+        
+        # Update the database
+        supabase.table("storybooks").update({
+            "creation_params": updated_creation_params
+        }).eq("id", storybook_id).execute()
+        
+        return story_arc
         
     except Exception as e:
         if isinstance(e, ValueError):
