@@ -26,7 +26,7 @@ class FinalScriptSchema(BaseModel):
     user_id: str = Field(..., description="User ID")
     
     # 14 Spread Scripts
-    spreads: List[SpreadScript] = Field(..., description="14 spread scripts", min_items=14, max_items=14)
+    spreads: List[SpreadScript] = Field(..., description="14 spread scripts", min_length=14, max_length=14)
 
 # JSON Schema Example:
 """

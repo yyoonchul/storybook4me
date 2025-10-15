@@ -100,3 +100,15 @@ def get_claude_models() -> list[str]:
 DEFAULT_REWRITE_PROVIDER = "openai"
 DEFAULT_REWRITE_MODEL = "gpt-5-mini"
 
+# Default model for bible generation
+DEFAULT_BIBLE_PROVIDER = "openai"
+DEFAULT_BIBLE_MODEL = "gpt-5-mini"
+
+# Default model for arc generation
+DEFAULT_ARC_PROVIDER = "openai"
+DEFAULT_ARC_MODEL = "gpt-5-mini"
+
+# Default model for draft generation
+DEFAULT_DRAFT_PROVIDER = "openai"
+DEFAULT_DRAFT_MODEL = "gpt-5-mini"
+

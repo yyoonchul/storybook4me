@@ -1,24 +1,30 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class Character(BaseModel):
     """Character information - compatible with characters table"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "additionalProperties": False
+        }
+    )
     character_name: str = Field(..., description="Character name")
-    description: Optional[str] = Field(None, description="Character description")
-    visual_features: Optional[str] = Field(None, description="Visual features for image generation")
+    description: str = Field(..., description="Character description")
+    visual_features: str = Field(..., description="Visual features for image generation")
 
 class StoryBibleSchema(BaseModel):
-    """Character information"""
-    characters: List[Character] = Field(..., description="Characters", min_items=1)
-
-    """Background setting"""
+    """Story Bible Schema"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "additionalProperties": False
+        }
+    )
+    characters: List[Character] = Field(..., description="Characters", min_length=1)
     name: str = Field(..., description="Location name")
     time_period: str = Field(..., description="Time period")
     location_type: str = Field(..., description="Location type (e.g., forest, village, house)")
     description: str = Field(..., description="Detailed description of the location")
-
-    """Theme information"""
     world_rules: str = Field(..., description="World rules")
     main_theme: str = Field(..., description="Main theme")
     main_conflict: str = Field(..., description="Main conflict situation")
