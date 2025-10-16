@@ -23,7 +23,7 @@ GOOGLE_MODELS = {
 CLAUDE_MODELS = {
     "claude-sonnet-4-5": "claude-sonnet-4-5-20250929",
     "claude-sonnet-4": "claude-sonnet-4-20250514",
-    "claude-haiku": "claude-3-5-haiku-latest",
+    "claude-haiku-4-5": "claude-haiku-4-5-20251001",
 }
 
 

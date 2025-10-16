@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     clerk_domain: str
     clerk_audience: str
     
+    # Image generation API keys (optional, defaults to .env)
+    google_api_key: str = ""
+    openai_api_key: str = ""
+    
     class Config:
         env_file = ".env"
         extra = "ignore"  # Ignore extra environment variables
