@@ -19,6 +19,7 @@ type StorybookPreviewProps = {
   pageStatus: SaveStatus;
   pageManagementError: string | null;
   clearError: () => void;
+  isGenerating?: boolean;
 };
 
 export function StorybookPreview({
@@ -34,7 +35,30 @@ export function StorybookPreview({
   pageStatus,
   pageManagementError,
   clearError,
+  isGenerating = false,
 }: StorybookPreviewProps) {
+  // Show skeleton loading during generation
+  if (isGenerating) {
+    return (
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0 animate-pulse">
+        {/* Image Side Skeleton */}
+        <div className="relative bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center p-6 min-h-0">
+          <div className="aspect-square w-full max-w-xs bg-gray-300 rounded-lg"></div>
+        </div>
+
+        {/* Text Side Skeleton */}
+        <div className="relative p-6 flex flex-col justify-center bg-white/50 min-h-0">
+          <div className="space-y-4">
+            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-full"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0">
       {/* Image Side */}

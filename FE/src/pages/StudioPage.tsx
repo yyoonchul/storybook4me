@@ -78,8 +78,12 @@ const StudioPage = () => {
     return 'create';
   };
   
+  // Store the access type to determine UI behavior
+  const accessType = getAccessType();
+  const isEditMode = accessType === 'edit';
+  
   const [chatHistory, setChatHistory] = useState<Array<{ role: "assistant" | "user"; content: string }>>([
-    { role: "assistant", content: getInitialChatMessage(getAccessType()) }
+    { role: "assistant", content: getInitialChatMessage(accessType) }
   ]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
@@ -218,7 +222,20 @@ const StudioPage = () => {
     return 'settings';
   };
   
-  const [rightMode, setRightMode] = useState<'preview' | 'settings'>('settings');
+  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(() => {
+    // In edit mode (id exists), start with preview; otherwise settings
+    // Note: We use id here because isEditMode is not available in useState initializer
+    // Edit mode: id exists without prompt or mode=settings
+    const isEdit = id && !prompt && initialMode !== 'settings';
+    return isEdit ? 'preview' : 'settings';
+  });
+  
+  // State to control chat panel visibility
+  const [showChatPanel, setShowChatPanel] = useState(() => {
+    // Show chat panel only in edit mode (id exists, no prompt, no mode=settings)
+    const isEdit = id && !prompt && initialMode !== 'settings';
+    return isEdit;
+  });
   
   // Set initial mode based on storybook pages
   useEffect(() => {
@@ -232,6 +249,9 @@ const StudioPage = () => {
         setHasGenerated(true);
       }
       
+      // Show chat panel only in edit mode (not during create/prompt mode)
+      setShowChatPanel(isEditMode);
+      
       console.log('Studio workflow state:', {
         hasPages,
         pageCount: storybook.pages?.length || 0,
@@ -240,7 +260,7 @@ const StudioPage = () => {
         accessType: prompt ? 'prompt_input' : id ? 'existing_story' : 'bookshelf_create'
       });
     }
-  }, [storybook]);
+  }, [storybook, isEditMode]);
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const synopsisBtnRef = useRef<HTMLButtonElement>(null);
@@ -399,25 +419,31 @@ const StudioPage = () => {
       selectedArtStyle: STYLES[artStyleIndex]
     });
     
-    // Mark as generated - this will hide the button and make settings read-only
+    // Immediately transition to chat + preview mode (showing skeleton loading)
     setHasGenerated(true);
+    setIsGenerating(true);
+    setShowChatPanel(true);
+    setRightMode('preview');
     
-    // 임시 토스트 메시지
-    toast({
-      title: "Generating Story",
-      description: "Your storybook is being created...",
-    });
+    // Add initial loading message to chat
+    setChatHistory([
+      { role: "assistant", content: "Your story is being created! Please wait..." }
+    ]);
     
-    // TODO: 여기에 실제 생성 API 호출이 들어갈 예정
-    // Example:
-    // setIsGenerating(true);
-    // const response = await generateStorybook({ mainConcept, selectedCharacters, artStyle: STYLES[artStyleIndex] });
-    // setIsGenerating(false);
-    
-    // Preview 모드로 전환하여 UX 플로우 시연
+    // Simulate generation completion after 2 seconds
     setTimeout(() => {
-      setRightMode('preview');
-    }, 500);
+      setIsGenerating(false);
+      setChatHistory([
+        { role: "assistant", content: "Your story has been created! I'm here to help you refine it. What would you like to change?" }
+      ]);
+    }, 2000);
+    
+    // TODO: Backend connection
+    // When backend is ready, replace the setTimeout with actual API call:
+    // const token = await session?.getToken({ template: 'storybook4me' });
+    // await storybookApi.generate(id, { mainConcept, characterIds: selectedCharacters, style: STYLES[artStyleIndex].title }, token);
+    // const res = await storybookApi.get(id, token);
+    // setStorybook(res.storybook);
   };
 
   if (isGenerating && !id) {
@@ -498,77 +524,88 @@ const StudioPage = () => {
       </div>
 
       <main className="flex-1 flex overflow-hidden h-0">
-        {/* Left Panel - Editor */}
-        <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
-          <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-            <h3 className="text-sm font-semibold">AI Storyteller</h3>
-          </div>
+        {/* Left Panel - Editor (Chat) - Conditional Rendering */}
+        {showChatPanel && (
+          <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
+              <h3 className="text-sm font-semibold">AI Storyteller</h3>
+            </div>
 
-          <div className="flex-1 overflow-hidden h-0">
-            <div className="h-full flex flex-col">
-              <ScrollArea className="flex-1 p-4 h-0">
-                <div className="space-y-4">
-                  {chatHistory.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-3 ${
-                          message.role === 'user'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-white border'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {isGenerating && (
-                    <div className="flex justify-start">
-                      <div className="bg-white border rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">AI is thinking...</span>
+            <div className="flex-1 overflow-hidden h-0">
+              <div className="h-full flex flex-col">
+                <ScrollArea className="flex-1 p-4 h-0">
+                  <div className="space-y-4">
+                    {isStorybookLoading ? (
+                      // Chat panel loading skeleton
+                      <>
+                        <div className="flex justify-start">
+                          <div className="max-w-[80%] rounded-lg p-3 bg-white border animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-48"></div>
+                          </div>
+                        </div>
+                        <div className="flex justify-start">
+                          <div className="max-w-[80%] rounded-lg p-3 bg-white border animate-pulse">
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-64"></div>
+                              <div className="h-4 bg-gray-200 rounded w-56"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      chatHistory.map((message, index) => (
+                        <div
+                          key={index}
+                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-lg p-3 ${
+                              message.role === 'user'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-white border'
+                            }`}
+                          >
+                            <p className="text-sm">{message.content}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {isGenerating && (
+                      <div className="flex justify-start">
+                        <div className="bg-white border rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-sm">AI is thinking...</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
+                    )}
+                  </div>
+                </ScrollArea>
 
-              {isFirstTimeSetup && !isStorybookLoading && (
-                <div className="px-4 py-3 border-t bg-purple-50/50 flex-shrink-0">
-                  <GenerateButton 
-                    variant="chat"
-                    onClick={handleGenerate}
-                    disabled={!mainConcept.trim()}
-                  />
+                <div className="p-4 border-t flex-shrink-0">
+                  <div className="flex gap-2">
+                    <Input
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      placeholder="Tell me what you'd like to change..."
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    />
+                    <Button onClick={handleSendMessage} disabled={!chatMessage.trim() || isGenerating}>
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Try: "Make the rabbit playful" or "Change to watercolor style"
+                  </p>
                 </div>
-              )}
-
-              <div className="p-4 border-t flex-shrink-0">
-                <div className="flex gap-2">
-                  <Input
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Tell me what you'd like to change..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage} disabled={!chatMessage.trim() || isGenerating}>
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Try: "Make the rabbit playful" or "Change to watercolor style"
-                </p>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Panel - Live Preview */}
-        <div className="w-[70%] bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col h-full overflow-hidden">
+        {/* Right Panel - Live Preview/Settings */}
+        <div className={`${showChatPanel ? 'w-[70%]' : 'w-[70%] mx-auto'} bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col h-full overflow-hidden`}>
           <div className="p-4 border-b bg-white/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
             <div>
               <h3 className="text-lg font-semibold">
@@ -644,6 +681,7 @@ const StudioPage = () => {
                     pageStatus={pageStatus}
                     pageManagementError={pageManagementError}
                     clearError={clearError}
+                    isGenerating={isGenerating}
                   />
 
                   {/* Navigation */}
@@ -701,7 +739,7 @@ const StudioPage = () => {
             ) : (
               <Card className="glass-effect flex-1 overflow-hidden h-full">
                 <CardContent className="p-0 h-full flex flex-col overflow-hidden">
-                  {isStorybookLoading ? (
+                  {isStorybookLoading || isGenerating ? (
                     // Loading skeleton
                     <div className="p-6 space-y-8 animate-pulse">
                       {/* Main Concept Skeleton */}
@@ -757,7 +795,7 @@ const StudioPage = () => {
                         </div>
                       </ScrollArea>
                       
-                      {isFirstTimeSetup && (
+                      {isFirstTimeSetup && !isGenerating && (
                         <div className="p-4 border-t bg-white/80 backdrop-blur-sm flex-shrink-0">
                           <GenerateButton 
                             variant="settings"
