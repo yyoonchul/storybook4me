@@ -30,11 +30,11 @@ class ImagePromptGenerator:
             HTTPException: If storybook not found or database error occurs
         """
         try:
-            # First, verify that the storybook exists
+            # First, verify that the storybook exists and get creation_params
             storybook_check = (
                 supabase
                 .table("storybooks")
-                .select("id,title,page_count")
+                .select("id,title,page_count,creation_params")
                 .eq("id", storybook_id)
                 .execute()
             )
@@ -46,6 +46,17 @@ class ImagePromptGenerator:
                 )
             
             storybook = storybook_check.data[0]
+            
+            # Extract character visual features from Story Bible
+            creation_params = storybook.get("creation_params", {})
+            bible_data = creation_params.get("bible", {})
+            characters_info = bible_data.get("characters", [])
+            
+            # Build character visual mapping (name -> visual_features)
+            character_visuals = {
+                char["character_name"]: char["visual_features"] 
+                for char in characters_info
+            }
             
             # Get all pages for this storybook
             pages_res = (
@@ -80,8 +91,8 @@ class ImagePromptGenerator:
                     })
                     continue
                 
-                # Generate image prompt
-                image_prompt = self._create_image_prompt(script_text)
+                # Generate image prompt with character visual features
+                image_prompt = self._create_image_prompt(script_text, character_visuals)
                 
                 # Update the page with the generated image prompt
                 update_res = (
@@ -117,12 +128,13 @@ class ImagePromptGenerator:
                 detail=f"Failed to generate image prompts: {str(e)}"
             )
     
-    def _create_image_prompt(self, script_text: str) -> str:
+    def _create_image_prompt(self, script_text: str, character_visuals: Dict[str, str] = None) -> str:
         """
-        Create an image prompt by combining system prompt with script text.
+        Create an image prompt by combining system prompt with script text and character visual features.
         
         Args:
             script_text (str): The page script text
+            character_visuals (Dict[str, str]): Character name to visual features mapping
             
         Returns:
             str: Combined image prompt
@@ -130,8 +142,12 @@ class ImagePromptGenerator:
         # Clean up the script text
         cleaned_script = script_text.strip()
         
-        # Combine system prompt with script text
-        image_prompt = f"{self.system_prompt}: {cleaned_script}"
+        # Include character visual features if available
+        if character_visuals:
+            char_desc = "; ".join([f"{name}: {visual}" for name, visual in character_visuals.items()])
+            image_prompt = f"{self.system_prompt}: {cleaned_script}. Characters: {char_desc}"
+        else:
+            image_prompt = f"{self.system_prompt}: {cleaned_script}"
         
         return image_prompt
     

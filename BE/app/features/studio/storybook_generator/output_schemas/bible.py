@@ -13,6 +13,23 @@ class Character(BaseModel):
     description: str = Field(..., description="Character description")
     visual_features: str = Field(..., description="Visual features for image generation")
 
+class SettingOnlySchema(BaseModel):
+    """Story setting and elements only - used when preset characters are provided"""
+    model_config = ConfigDict(
+        json_schema_extra={
+            "additionalProperties": False
+        }
+    )
+    name: str = Field(..., description="Location name")
+    time_period: str = Field(..., description="Time period")
+    location_type: str = Field(..., description="Location type (e.g., forest, village, house)")
+    description: str = Field(..., description="Detailed description of the location")
+    world_rules: str = Field(..., description="World rules")
+    main_theme: str = Field(..., description="Main theme")
+    main_conflict: str = Field(..., description="Main conflict situation")
+    conflict_resolution: str = Field(..., description="Conflict resolution direction")
+
+
 class StoryBibleSchema(BaseModel):
     """Story Bible Schema"""
     model_config = ConfigDict(

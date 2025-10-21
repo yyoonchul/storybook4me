@@ -29,7 +29,7 @@ class ImageResult:
 
 
 # Supabase Storage configuration
-BUCKET_NAME = "user_images"  # Using existing bucket
+BUCKET_NAME = "storybook_assets"  # Bucket for storybook-generated assets
 STORAGE_PATH_PREFIX = "generated"
 
 
