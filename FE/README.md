@@ -71,3 +71,10 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Studio Rewrite Flow
+
+- `StudioPage`의 채팅 입력은 `rewriteStorybookScript` API를 호출해 전체 14스프레드 스크립트를 재작성합니다.
+- 현재 `storybook.pages`를 정렬해 28개의 페이지를 왼쪽/오른쪽 쌍으로 묶고, 편집 중인 페이지의 임시 텍스트(`usePageText`)를 그대로 반영하여 `FinalScript` 타입으로 변환합니다.
+- 성공 시 `applyRewriteResult`가 실행되어 `storybook` 상태와 현재 페이지 텍스트를 업데이트하며, 프리뷰에서 바로 결과를 확인할 수 있습니다. (다른 페이지는 다음 자동 저장 사이클에서 동기화됩니다.)
+- 오류(페이지 수 부족 등)가 발생하면 토스트 + 챗봇 메시지로 사용자에게 안내합니다.

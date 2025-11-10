@@ -340,7 +340,76 @@ interface DeleteResponse {
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
 | `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |
+| `/api/studio/storybooks/rewrite` | `POST` | 전체 14 스프레드 스크립트를 리라이트합니다. (저장은 자동 저장에서 처리) | `{ script: FinalScriptSchema, editRequest: string }` | `{ script: FinalScriptSchema }` |
 | `/api/chat/storybook/{storybookId}` | `POST` | AI와 스토리 개선에 대한 대화를 시작합니다. | `{ message, context?: { pageNumber?, currentText? } }` | `{ response: "AI response text", suggestions?: [{ type, content }] }` |
+
+- **FinalScriptSchema** 는 14개의 `spreadNumber`, `script1`, `script2`를 포함하며 `storybookId`, `userId`를 담아야 합니다. `rewrite` 엔드포인트는 요청자의 Clerk `sub`와 `script.userId`가 일치해야 하며, 성공 시 새 스크립트를 반환하고 DB 저장은 수행하지 않습니다.
+
+##### **3) 스크립트 전체 리라이트**
+- **`POST /api/studio/storybooks/rewrite`**
+- **설명:** 현재의 전체 스크립트(14 스프레드)와 수정 지침을 전달하면, 서버가 LLM으로 전체 스크립트를 리라이트하여 반환합니다. 서버는 결과를 저장하지 않으며, 저장은 스튜디오 자동 저장 로직에서 처리합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  > 프론트엔드에서는 camelCase를 사용합니다. 서버는 snake_case로 처리하므로 매핑을 적용하세요.
+  ```typescript
+  // 개별 스프레드
+  interface SpreadScript {
+    spreadNumber: number; // 1..14
+    script1: string;      // 좌측 페이지
+    script2: string;      // 우측 페이지 (페이지 턴 고려)
+  }
+
+  // 전체 스크립트 스키마
+  interface FinalScriptSchema {
+    storybookId: string;       // 동화책 ID
+    userId: string;            // 사용자 ID (Clerk sub)
+    spreads: SpreadScript[];   // 길이 14
+  }
+
+  // 리퀘스트
+  interface RewriteScriptRequest {
+    script: FinalScriptSchema; // 현재 스크립트
+    editRequest: string;       // 리라이트 지침(설명)
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface RewriteScriptResponse {
+    script: FinalScriptSchema; // 리라이트된 스크립트 (14 스프레드)
+  }
+  ```
+- **권한/검증:**
+  - `script.userId`와 인증된 사용자(`Authorization`의 Clerk sub)가 일치해야 합니다. 불일치 시 `403 Forbidden`.
+  - 필수 필드 누락/유효성 실패 시 `400 Bad Request`.
+  - 내부 오류 시 `500 Internal Server Error`.
+- **예시 요청:**
+  ```json
+  {
+    "script": {
+      "storybookId": "c8f1-...",
+      "userId": "user_abc123",
+      "spreads": [
+        { "spreadNumber": 1, "script1": "Once upon a time...", "script2": "He looked outside..." },
+        { "spreadNumber": 2, "script1": "The sun was bright...", "script2": "He smiled and..." }
+        // ... spreads 3..14
+      ]
+    },
+    "editRequest": "더 밝고 따뜻한 톤으로 전체를 매끄럽게 다듬어줘"
+  }
+  ```
+- **예시 응답:**
+  ```json
+  {
+    "script": {
+      "storybookId": "c8f1-...",
+      "userId": "user_abc123",
+      "spreads": [
+        { "spreadNumber": 1, "script1": "In a cozy morning...", "script2": "He peeked outside..." }
+        // ... spreads 2..14
+      ]
+    }
+  }
+  ```
 
 ---
 

@@ -83,4 +83,5 @@ export type DeletePageResponse = {
   deleted_page_number: number;
 };
 
+// Rewrite Types
 

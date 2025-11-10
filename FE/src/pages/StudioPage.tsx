@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
 import { useStudioTitle, usePageText, usePageManagement, useCharacterSelection } from "../features/studio/hooks";
 import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
@@ -37,6 +37,7 @@ import { ArtStyleCarousel, STYLES } from "../features/studio/components/ArtStyle
 import { StorybookPreview } from "../features/studio/components/StorybookPreview";
 import { GenerateButton } from "../features/studio/components/GenerateButton";
 import { useToast } from "../shared/hooks/use-toast";
+import { rewriteStorybookScript, type FinalScript, type StorybookPage } from "../features/studio";
 
 // Initial chat messages based on access method
 const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
@@ -330,24 +331,137 @@ const StudioPage = () => {
     }
   }, [prompt, id, session, navigate]);
 
-  const handleSendMessage = () => {
-    if (!chatMessage.trim()) return;
-    
-    const newMessage = { role: "user" as const, content: chatMessage };
-    setChatHistory([...chatHistory, newMessage]);
+  const buildFinalScript = useCallback((): FinalScript | null => {
+    if (!storybook || !storybook.pages || storybook.pages.length === 0) {
+      return null;
+    }
+
+    const sortedPages = [...storybook.pages] as StorybookPage[];
+    sortedPages.sort((a, b) => (a.page_number ?? 0) - (b.page_number ?? 0));
+    if (sortedPages.length < 28) {
+      return null;
+    }
+
+    const spreads: FinalScript["spreads"] = [];
+    for (let spreadIndex = 0; spreadIndex < 14; spreadIndex += 1) {
+      const leftPage = sortedPages[spreadIndex * 2];
+      const rightPage = sortedPages[spreadIndex * 2 + 1];
+      if (!leftPage || !rightPage) {
+        return null;
+      }
+
+      const leftScript =
+        leftPage.page_number === currentPageNumber ? pageText : leftPage.script_text ?? "";
+      const rightScript =
+        rightPage.page_number === currentPageNumber ? pageText : rightPage.script_text ?? "";
+
+      spreads.push({
+        spreadNumber: spreadIndex + 1,
+        script1: leftScript,
+        script2: rightScript,
+      });
+    }
+
+    return {
+      storybookId: storybook.id,
+      userId: storybook.user_id,
+      spreads,
+    };
+  }, [storybook, currentPageNumber, pageText]);
+
+  const applyRewriteResult = useCallback((script: FinalScript) => {
+    setStorybook(prev => {
+      if (!prev || !prev.pages) return prev;
+      const firstPageNumber = prev.pages[0]?.page_number ?? 1;
+      const zeroBased = firstPageNumber === 0;
+
+      const updatedPages = prev.pages.map((page: StorybookPage) => {
+        const pageNumber = page.page_number ?? 0;
+        const normalizedNumber = zeroBased ? pageNumber : pageNumber - 1;
+        if (normalizedNumber < 0) return page;
+        const spreadIndex = Math.floor(normalizedNumber / 2);
+        const spread = script.spreads[spreadIndex];
+        if (!spread) return page;
+        const isLeftPage = normalizedNumber % 2 === 0;
+        const nextText = isLeftPage ? spread.script1 : spread.script2;
+        if (page.script_text === nextText) return page;
+        return { ...page, script_text: nextText };
+      });
+
+      return { ...prev, pages: updatedPages };
+    });
+
+    if (currentPageNumber != null) {
+      const firstPageNumber = storybook?.pages?.[0]?.page_number ?? 1;
+      const zeroBased = firstPageNumber === 0;
+      const normalizedNumber = zeroBased ? currentPageNumber : currentPageNumber - 1;
+      if (normalizedNumber >= 0) {
+        const spreadIndex = Math.floor(normalizedNumber / 2);
+        const spread = script.spreads[spreadIndex];
+        if (spread) {
+          const isLeftPage = normalizedNumber % 2 === 0;
+          const updatedText = isLeftPage ? spread.script1 : spread.script2;
+          setPageText(updatedText);
+        }
+      }
+    }
+  }, [currentPageNumber, setPageText, setStorybook, storybook]);
+
+  const handleSendMessage = async () => {
+    const trimmed = chatMessage.trim();
+    if (!trimmed) return;
+
+    setChatHistory(prev => [...prev, { role: "user", content: trimmed }]);
     setChatMessage("");
-    
     setIsGenerating(true);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = { 
-        role: "assistant" as const, 
-        content: "I've made those changes to your story! The characters now have more vibrant expressions and the scene feels more dynamic. What would you like to adjust next?"
-      };
-      setChatHistory(prev => [...prev, aiResponse]);
+
+    const finalScript = buildFinalScript();
+    if (!finalScript) {
+      toast({
+        title: "Unable to rewrite",
+        description: "A complete 14-spread script is required before rewriting.",
+        variant: "destructive",
+      });
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: "I need the full story script before I can rewrite it. Please generate or load all pages first." },
+      ]);
       setIsGenerating(false);
-    }, 2000);
+      return;
+    }
+
+    try {
+      const token = await session?.getToken({ template: 'storybook4me' });
+      const response = await rewriteStorybookScript(
+        {
+          script: finalScript,
+          editRequest: trimmed,
+        },
+        token || undefined
+      );
+      applyRewriteResult(response.script);
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: "I've updated the story with your requested changes. Let me know if you'd like further tweaks." },
+      ]);
+      toast({
+        title: "Story rewritten",
+        description: "The AI prepared an updated script based on your request.",
+      });
+    } catch (error: any) {
+      const message = error?.message || "Failed to rewrite the story.";
+      toast({
+        title: "Rewrite failed",
+        description: message,
+        variant: "destructive",
+      });
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: `I couldn't rewrite the story: ${message}` },
+      ]);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
 
@@ -589,9 +703,9 @@ const StudioPage = () => {
                       value={chatMessage}
                       onChange={(e) => setChatMessage(e.target.value)}
                       placeholder="Tell me what you'd like to change..."
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onKeyDown={(e) => e.key === 'Enter' && (void handleSendMessage())}
                     />
-                    <Button onClick={handleSendMessage} disabled={!chatMessage.trim() || isGenerating}>
+                    <Button onClick={() => { void handleSendMessage(); }} disabled={!chatMessage.trim() || isGenerating}>
                       <Send className="w-4 h-4" />
                     </Button>
                   </div>
