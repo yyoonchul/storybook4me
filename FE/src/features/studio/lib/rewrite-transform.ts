@@ -1,4 +1,8 @@
 import {
+  ChatRequest,
+  ChatRequestSnakeCase,
+  ChatResponse,
+  ChatResponseSnakeCase,
   FinalScript,
   FinalScriptSnakeCase,
   RewriteScriptRequest,
@@ -47,6 +51,26 @@ export function fromSnakeRewriteResponse(
 ): RewriteScriptResponse {
   return {
     script: fromSnakeFinalScript(response.script),
+  };
+}
+
+export function toSnakeChatRequest(
+  request: ChatRequest,
+): ChatRequestSnakeCase {
+  return {
+    script: toSnakeFinalScript(request.script),
+    message: request.message,
+  };
+}
+
+export function fromSnakeChatResponse(
+  response: ChatResponseSnakeCase,
+): ChatResponse {
+  return {
+    assistantMessage: response.assistant_message,
+    script: response.script
+      ? fromSnakeFinalScript(response.script)
+      : undefined,
   };
 }
 

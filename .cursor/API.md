@@ -341,7 +341,7 @@ interface DeleteResponse {
 | `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |
 | `/api/studio/storybooks/rewrite` | `POST` | 전체 14 스프레드 스크립트를 리라이트합니다. (저장은 자동 저장에서 처리) | `{ script: FinalScriptSchema, editRequest: string }` | `{ script: FinalScriptSchema }` |
-| `/api/chat/storybook/{storybookId}` | `POST` | AI와 스토리 개선에 대한 대화를 시작합니다. | `{ message, context?: { pageNumber?, currentText? } }` | `{ response: "AI response text", suggestions?: [{ type, content }] }` |
+| `/api/studio/storybooks/chat` | `POST` | 메시지를 분류해 질문에는 답변을, 수정 요청에는 리라이트 결과와 요약을 반환합니다. | `{ script: FinalScriptSchema, message: string }` | `{ assistantMessage: string, script?: FinalScriptSchema }` |
 
 - **FinalScriptSchema** 는 14개의 `spreadNumber`, `script1`, `script2`를 포함하며 `storybookId`, `userId`를 담아야 합니다. `rewrite` 엔드포인트는 요청자의 Clerk `sub`와 `script.userId`가 일치해야 하며, 성공 시 새 스크립트를 반환하고 DB 저장은 수행하지 않습니다.
 
@@ -408,6 +408,49 @@ interface DeleteResponse {
         // ... spreads 2..14
       ]
     }
+  }
+  ```
+
+##### **4) 스튜디오 채팅 응답**
+- **`POST /api/studio/storybooks/chat`**
+- **설명:** 채팅 메시지를 받아 LLM이 `question`/`edit`로 분류합니다. 질문이면 스토리 컨텍스트를 이용해 답변만 반환하고, 수정이면 전체 스크립트를 재작성하며 변경 사항 요약(`assistantMessage`)을 함께 제공합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  ```typescript
+  interface ChatRequest {
+    script: FinalScriptSchema; // 현재 14 스프레드 스크립트
+    message: string;           // 사용자의 질문 또는 수정 요청
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface ChatResponse {
+    assistantMessage: string;      // 질문에 대한 답변 또는 변경 내용 요약
+    script?: FinalScriptSchema;    // edit인 경우에만 포함되는 최신 스크립트
+  }
+  ```
+- **분류 규칙 요약:**
+  - “바꿔/수정/재작성/톤 변경/추가/삭제/길게/짧게” 등 명령형 수정 요청이 있으면 `edit`
+  - 단순 요약/질문/설명 요청은 `question`
+  - 혼재 시 `edit` 우선
+- **예시 요청 (edit):**
+  ```json
+  {
+    "script": { "...": "..." },
+    "message": "스토리를 좀 더 빠른テン포로 다듬어줘"
+  }
+  ```
+- **예시 응답 (edit):**
+  ```json
+  {
+    "assistantMessage": "스토리 전개를 빠르게 조정하고 대사를 간결하게 정리했습니다.",
+    "script": { "...": "..." }
+  }
+  ```
+- **예시 응답 (question):**
+  ```json
+  {
+    "assistantMessage": "아이들이 겪는 갈등은 꿀이 떨어진 뒤 새로운 친구들과 협력해 해결하는 과정입니다."
   }
   ```
 

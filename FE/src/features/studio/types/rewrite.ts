@@ -38,4 +38,24 @@ export type RewriteScriptResponseSnakeCase = {
   script: FinalScriptSnakeCase;
 };
 
+export type ChatRequest = {
+  script: FinalScript;
+  message: string;
+};
+
+export type ChatResponse = {
+  assistantMessage: string;
+  script?: FinalScript;
+};
+
+export type ChatRequestSnakeCase = {
+  script: FinalScriptSnakeCase;
+  message: string;
+};
+
+export type ChatResponseSnakeCase = {
+  assistant_message: string;
+  script?: FinalScriptSnakeCase;
+};
+
 

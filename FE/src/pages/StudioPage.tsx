@@ -37,7 +37,7 @@ import { ArtStyleCarousel, STYLES } from "../features/studio/components/ArtStyle
 import { StorybookPreview } from "../features/studio/components/StorybookPreview";
 import { GenerateButton } from "../features/studio/components/GenerateButton";
 import { useToast } from "../shared/hooks/use-toast";
-import { rewriteStorybookScript, type FinalScript, type StorybookPage } from "../features/studio";
+import { postStudioChat, type FinalScript, type StorybookPage } from "../features/studio";
 
 // Initial chat messages based on access method
 const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
@@ -418,13 +418,13 @@ const StudioPage = () => {
     const finalScript = buildFinalScript();
     if (!finalScript) {
       toast({
-        title: "Unable to rewrite",
-        description: "A complete 14-spread script is required before rewriting.",
+        title: "콘텐츠 준비 필요",
+        description: "14개의 스프레드가 모두 준비되어야 AI가 도와줄 수 있어요.",
         variant: "destructive",
       });
       setChatHistory(prev => [
         ...prev,
-        { role: "assistant", content: "I need the full story script before I can rewrite it. Please generate or load all pages first." },
+        { role: "assistant", content: "전체 스토리가 완성되면 더 구체적으로 도와드릴 수 있어요. 먼저 모든 페이지를 채워주세요!" },
       ]);
       setIsGenerating(false);
       return;
@@ -432,32 +432,41 @@ const StudioPage = () => {
 
     try {
       const token = await session?.getToken({ template: 'storybook4me' });
-      const response = await rewriteStorybookScript(
+      const response = await postStudioChat(
         {
           script: finalScript,
-          editRequest: trimmed,
+          message: trimmed,
         },
         token || undefined
       );
-      applyRewriteResult(response.script);
+
+      if (response.script) {
+        applyRewriteResult(response.script);
+        toast({
+          title: "스토리가 업데이트됐어요",
+          description: response.assistantMessage,
+        });
+      } else {
+        toast({
+          title: "AI 답변",
+          description: response.assistantMessage,
+        });
+      }
+
       setChatHistory(prev => [
         ...prev,
-        { role: "assistant", content: "I've updated the story with your requested changes. Let me know if you'd like further tweaks." },
+        { role: "assistant", content: response.assistantMessage },
       ]);
-      toast({
-        title: "Story rewritten",
-        description: "The AI prepared an updated script based on your request.",
-      });
     } catch (error: any) {
-      const message = error?.message || "Failed to rewrite the story.";
+      const message = error?.message || "Failed to process the chat request.";
       toast({
-        title: "Rewrite failed",
+        title: "요청 처리 실패",
         description: message,
         variant: "destructive",
       });
       setChatHistory(prev => [
         ...prev,
-        { role: "assistant", content: `I couldn't rewrite the story: ${message}` },
+        { role: "assistant", content: `문제를 해결하지 못했어요: ${message}` },
       ]);
     } finally {
       setIsGenerating(false);
@@ -689,7 +698,7 @@ const StudioPage = () => {
                         <div className="bg-white border rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">AI is thinking...</span>
+                            <span className="text-sm">Your storyteller is thinking...</span>
                           </div>
                         </div>
                       </div>
