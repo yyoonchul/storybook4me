@@ -45,6 +45,7 @@ export type ChatRequest = {
 
 export type ChatResponse = {
   assistantMessage: string;
+  action: "edit" | "question";
   script?: FinalScript;
 };
 
@@ -55,6 +56,7 @@ export type ChatRequestSnakeCase = {
 
 export type ChatResponseSnakeCase = {
   assistant_message: string;
+  action: "edit" | "question";
   script?: FinalScriptSnakeCase;
 };
 

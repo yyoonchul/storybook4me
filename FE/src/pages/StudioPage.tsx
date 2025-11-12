@@ -36,6 +36,7 @@ import { SelectedCharactersSection } from "../features/studio/components/Selecte
 import { ArtStyleCarousel, STYLES } from "../features/studio/components/ArtStyleCarousel";
 import { StorybookPreview } from "../features/studio/components/StorybookPreview";
 import { GenerateButton } from "../features/studio/components/GenerateButton";
+import { ThinkingMessage } from "../features/studio/components/ThinkingMessage";
 import { useToast } from "../shared/hooks/use-toast";
 import { postStudioChat, type FinalScript, type StorybookPage } from "../features/studio";
 
@@ -62,6 +63,7 @@ const StudioPage = () => {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [thinkingType, setThinkingType] = useState<"initial" | "edit" | "question">("initial");
   const [chatMessage, setChatMessage] = useState("");
   const [mainConcept, setMainConcept] = useState(prompt || "");
   const [hasGenerated, setHasGenerated] = useState(false); // Track if generation has been initiated
@@ -338,22 +340,41 @@ const StudioPage = () => {
 
     const sortedPages = [...storybook.pages] as StorybookPage[];
     sortedPages.sort((a, b) => (a.page_number ?? 0) - (b.page_number ?? 0));
-    if (sortedPages.length < 28) {
-      return null;
-    }
+
+    const firstPageNumber = sortedPages[0]?.page_number ?? 0;
+    const isZeroBased = firstPageNumber === 0;
+
+    const pageMap = new Map<number, StorybookPage>();
+    sortedPages.forEach((page) => {
+      const pageNumber = page.page_number ?? 0;
+      const normalizedNumber = isZeroBased ? pageNumber : pageNumber - 1;
+      if (normalizedNumber >= 0) {
+        pageMap.set(normalizedNumber, page);
+      }
+    });
+
+    const normalizedCurrentPage =
+      currentPageNumber == null
+        ? null
+        : isZeroBased
+          ? currentPageNumber
+          : currentPageNumber - 1;
 
     const spreads: FinalScript["spreads"] = [];
     for (let spreadIndex = 0; spreadIndex < 14; spreadIndex += 1) {
-      const leftPage = sortedPages[spreadIndex * 2];
-      const rightPage = sortedPages[spreadIndex * 2 + 1];
-      if (!leftPage || !rightPage) {
-        return null;
-      }
+      const leftIndex = spreadIndex * 2;
+      const rightIndex = leftIndex + 1;
+      const leftPage = pageMap.get(leftIndex);
+      const rightPage = pageMap.get(rightIndex);
 
       const leftScript =
-        leftPage.page_number === currentPageNumber ? pageText : leftPage.script_text ?? "";
+        normalizedCurrentPage === leftIndex
+          ? pageText ?? ""
+          : leftPage?.script_text ?? "";
       const rightScript =
-        rightPage.page_number === currentPageNumber ? pageText : rightPage.script_text ?? "";
+        normalizedCurrentPage === rightIndex
+          ? pageText ?? ""
+          : rightPage?.script_text ?? "";
 
       spreads.push({
         spreadNumber: spreadIndex + 1,
@@ -414,17 +435,18 @@ const StudioPage = () => {
     setChatHistory(prev => [...prev, { role: "user", content: trimmed }]);
     setChatMessage("");
     setIsGenerating(true);
+    setThinkingType("initial"); // Start with initial thinking state
 
     const finalScript = buildFinalScript();
     if (!finalScript) {
       toast({
-        title: "콘텐츠 준비 필요",
-        description: "14개의 스프레드가 모두 준비되어야 AI가 도와줄 수 있어요.",
+        title: "Content Preparation Required",
+        description: "All 14 spreads must be prepared for AI to help.",
         variant: "destructive",
       });
       setChatHistory(prev => [
         ...prev,
-        { role: "assistant", content: "전체 스토리가 완성되면 더 구체적으로 도와드릴 수 있어요. 먼저 모든 페이지를 채워주세요!" },
+        { role: "assistant", content: "Once the entire story is complete, I can help you more specifically. Please fill in all pages first!" },
       ]);
       setIsGenerating(false);
       return;
@@ -440,15 +462,21 @@ const StudioPage = () => {
         token || undefined
       );
 
+      // Update thinking type based on response action from backend
+      setThinkingType(response.action);
+
+      // Small delay to show the classified thinking message
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       if (response.script) {
         applyRewriteResult(response.script);
         toast({
-          title: "스토리가 업데이트됐어요",
+          title: "Story has been updated",
           description: response.assistantMessage,
         });
       } else {
         toast({
-          title: "AI 답변",
+          title: "AI Response",
           description: response.assistantMessage,
         });
       }
@@ -460,16 +488,17 @@ const StudioPage = () => {
     } catch (error: any) {
       const message = error?.message || "Failed to process the chat request.";
       toast({
-        title: "요청 처리 실패",
+        title: "Request Processing Failed",
         description: message,
         variant: "destructive",
       });
       setChatHistory(prev => [
         ...prev,
-        { role: "assistant", content: `문제를 해결하지 못했어요: ${message}` },
+        { role: "assistant", content: `Unable to resolve the issue: ${message}` },
       ]);
     } finally {
       setIsGenerating(false);
+      setThinkingType("initial"); // Reset to initial
     }
   };
 
@@ -693,16 +722,7 @@ const StudioPage = () => {
                         </div>
                       ))
                     )}
-                    {isGenerating && (
-                      <div className="flex justify-start">
-                        <div className="bg-white border rounded-lg p-3">
-                          <div className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span className="text-sm">Your storyteller is thinking...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {isGenerating && <ThinkingMessage type={thinkingType} />}
                   </div>
                 </ScrollArea>
 
@@ -712,7 +732,18 @@ const StudioPage = () => {
                       value={chatMessage}
                       onChange={(e) => setChatMessage(e.target.value)}
                       placeholder="Tell me what you'd like to change..."
-                      onKeyDown={(e) => e.key === 'Enter' && (void handleSendMessage())}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter') return;
+                        const isComposing =
+                          typeof e.nativeEvent === 'object' &&
+                          'isComposing' in e.nativeEvent &&
+                          (e.nativeEvent as KeyboardEvent).isComposing;
+                        if (isComposing) {
+                          return;
+                        }
+                        e.preventDefault();
+                        void handleSendMessage();
+                      }}
                     />
                     <Button onClick={() => { void handleSendMessage(); }} disabled={!chatMessage.trim() || isGenerating}>
                       <Send className="w-4 h-4" />

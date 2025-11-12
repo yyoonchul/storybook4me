@@ -58,7 +58,10 @@ async def handle_studio_chat(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to generate an answer for the question.",
             ) from exc
-        return ChatResponse(assistant_message=assistant_message)
+        return ChatResponse(
+            assistant_message=assistant_message,
+            action="question"
+        )
 
     # classification.action == "edit"
     try:
@@ -82,6 +85,7 @@ async def handle_studio_chat(
     )
     return ChatResponse(
         assistant_message=rewrite_result.change_summary,
+        action="edit",
         script=updated_script,
     )
 

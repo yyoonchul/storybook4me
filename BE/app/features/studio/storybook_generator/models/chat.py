@@ -1,6 +1,6 @@
 """Pydantic models for the Studio chat endpoint."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -23,6 +23,9 @@ class ChatResponse(BaseModel):
 
     assistant_message: str = Field(
         ..., description="Assistant's reply summarising the answer or changes applied."
+    )
+    action: Literal["edit", "question"] = Field(
+        ..., description="Classification of the user's message: 'edit' for modification requests, 'question' for information queries."
     )
     script: Optional[FinalScriptSchema] = Field(
         None,

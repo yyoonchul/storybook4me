@@ -68,6 +68,7 @@ export function fromSnakeChatResponse(
 ): ChatResponse {
   return {
     assistantMessage: response.assistant_message,
+    action: response.action,
     script: response.script
       ? fromSnakeFinalScript(response.script)
       : undefined,

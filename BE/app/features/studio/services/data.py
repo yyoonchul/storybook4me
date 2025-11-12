@@ -216,9 +216,22 @@ class StudioDataService:
             if storybook.get("user_id") != user_id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-            # Get current page count to determine new page number
-            current_page_count = storybook.get("page_count", 0)
-            new_page_number = current_page_count + 1
+            # Get the actual maximum page number from the pages table to avoid duplicates
+            existing_pages = (
+                supabase
+                .table("pages")
+                .select("page_number")
+                .eq("storybook_id", storybook_id)
+                .order("page_number", desc=True)
+                .limit(1)
+                .execute()
+            )
+            
+            if existing_pages.data and len(existing_pages.data) > 0:
+                max_page_number = existing_pages.data[0]["page_number"]
+                new_page_number = max_page_number + 1
+            else:
+                new_page_number = 1
 
             # Prepare page data
             page_content = page_data.content

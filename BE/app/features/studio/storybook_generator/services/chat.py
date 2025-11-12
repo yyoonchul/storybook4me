@@ -2,6 +2,7 @@
 High-level chat services for the Studio experience.
 """
 
+import logging
 from typing import Iterable
 
 from app.shared.llm.base import Provider, generate_structured, generate_text
@@ -22,7 +23,7 @@ Rules:
 - Return action "question" when the user only seeks clarification, summaries, themes, or any information without demanding modifications.
 - If both appear, prefer "edit".
 
-Output strict JSON: {"action": "edit"} or {"action": "question"}.
+Output strict JSON: {{"action": "edit"}} or {{"action": "question"}}.
 """
 
 QUESTION_ANSWER_PROMPT = """You are a helpful assistant for parents reviewing a children's picture book story.
@@ -41,14 +42,21 @@ Answer the question in 2-4 sentences:
 
 
 def classify_message(message: str) -> ClassificationSchema:
-    """Classify the incoming chat message using an LLM."""
-    result = generate_structured(
-        provider=Provider(DEFAULT_REWRITE_PROVIDER),
-        model=DEFAULT_REWRITE_MODEL,
-        input_text=CLASSIFICATION_PROMPT.format(message=message),
-        schema=ClassificationSchema,
-    )
-    return result.parsed
+    """Classify the incoming chat message using an LLM with heuristic fallback."""
+    try:
+        result = generate_structured(
+            provider=Provider(DEFAULT_REWRITE_PROVIDER),
+            model=DEFAULT_REWRITE_MODEL,
+            input_text=CLASSIFICATION_PROMPT.format(message=message),
+            schema=ClassificationSchema,
+        )
+        return result.parsed
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "LLM classification failed, using heuristic fallback: %s", exc
+        )
+        action = _heuristic_classification(message)
+        return ClassificationSchema(action=action)
 
 
 def answer_question(script: FinalScriptSchema, message: str) -> str:
@@ -81,5 +89,71 @@ def _build_story_context(spreads: Iterable[SpreadScript]) -> str:
             f"Left='{spread.script_1}' | Right='{spread.script_2}'"
         )
     return "\n".join(lines)
+
+
+def _heuristic_classification(message: str) -> str:
+    """
+    Rule-based fallback classification when LLM generation fails.
+
+    Uses simple keyword checks to distinguish between edit requests and questions.
+    Defaults to "question" to avoid unintended rewrites.
+    """
+    if not message:
+        return "question"
+
+    text = message.lower()
+
+    edit_keywords = [
+        "edit",
+        "rewrite",
+        "change",
+        "adjust",
+        "modify",
+        "update",
+        "replace",
+        "fix",
+        "revise",
+        "shorten",
+        "lengthen",
+        "longer",
+        "shorter",
+        "tone",
+        "style",
+        "add",
+        "remove",
+        "delete",
+        "swap",
+        "make it",
+        "can you make",
+        "turn it into",
+        "improve",
+        "polish",
+    ]
+
+    question_keywords = [
+        "who",
+        "what",
+        "when",
+        "where",
+        "why",
+        "how",
+        "explain",
+        "tell me",
+        "summar",
+        "synopsis",
+        "theme",
+        "meaning",
+        "message",
+        "moral",
+    ]
+
+    if any(keyword in text for keyword in edit_keywords):
+        return "edit"
+
+    if any(keyword in text for keyword in question_keywords):
+        return "question"
+
+    # Default to question to prevent unintended rewrites
+    return "question"
 
 
