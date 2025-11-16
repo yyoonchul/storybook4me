@@ -5,13 +5,14 @@ Provides text editing capabilities for children's picture books using LLM text g
 Supports both plain text editing and full script rewriting with proper formatting.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from app.shared.llm.base import Provider, generate_structured, generate_text
 from app.shared.llm.llm_config import DEFAULT_REWRITE_PROVIDER, DEFAULT_REWRITE_MODEL
 
 from ..output_schemas.draft import FinalScriptSchema
 from ..output_schemas.final_rewrite import FinalRewriteSchema
+from .utils import get_characters_for_page, get_characters_for_spread
 
 
 # System Prompts
@@ -25,6 +26,9 @@ Guidelines:
 - Keep the read-aloud rhythm and flow
 - Preserve the original tone and style unless specifically requested to change
 - Apply only the requested edits
+- Consider the characters appearing in this page when editing
+
+{character_context}
 
 Original Text:
 {original_text}
@@ -76,6 +80,9 @@ Guidelines:
 - Preserve page turn strategy (script_2 should create anticipation)
 - Use repetition and rhythm for read-aloud flow
 - Apply the requested edits while maintaining coherence across all spreads
+- Consider the characters appearing in each spread when editing
+
+{character_context}
 
 Current Script:
 {formatted_spreads}
@@ -91,13 +98,20 @@ Return a JSON object that matches the FinalRewriteSchema structure:
 """
 
 
-def rewrite_plain_text(original_text: str, edit_request: str) -> str:
+def rewrite_plain_text(
+    original_text: str, 
+    edit_request: str,
+    page_id: Optional[str] = None,
+    storybook_id: Optional[str] = None
+) -> str:
     """
     Rewrite plain text based on user's edit request.
     
     Args:
         original_text: The original text to be edited
         edit_request: User's specific edit instructions
+        page_id: Optional page ID to get page-specific characters
+        storybook_id: Optional storybook ID (required if page_id is provided)
         
     Returns:
         The edited text
@@ -109,9 +123,30 @@ def rewrite_plain_text(original_text: str, edit_request: str) -> str:
     if not original_text or not edit_request:
         raise ValueError("Both original_text and edit_request must be non-empty strings")
     
+    if page_id and not storybook_id:
+        raise ValueError("storybook_id must be provided when page_id is provided")
+    
     try:
+        # Get character context if page_id is provided
+        character_context = ""
+        if page_id and storybook_id:
+            characters = get_characters_for_page(page_id, storybook_id)
+            if characters:
+                char_descriptions = []
+                for char in characters:
+                    desc = f"{char.character_name}"
+                    if char.description:
+                        desc += f": {char.description}"
+                    char_descriptions.append(desc)
+                character_context = f"Characters in this page: {'; '.join(char_descriptions)}"
+            else:
+                character_context = "No specific character information available for this page."
+        else:
+            character_context = "Character information not available."
+        
         # Format the prompt
         prompt = PLAIN_TEXT_REWRITE_PROMPT.format(
+            character_context=character_context,
             original_text=original_text,
             edit_request=edit_request
         )
@@ -144,10 +179,16 @@ def rewrite_full_script_with_summary(
     Rewrite the entire storybook script and provide a natural-language change summary.
     """
     spreads = _validate_script_inputs(script_data, edit_request)
+    storybook_id = script_data["storybook_id"]
 
     try:
         formatted_spreads = _format_spreads_for_prompt(spreads)
+        
+        # Get character context for each spread
+        character_context = _build_spread_character_context(storybook_id, spreads)
+        
         prompt = FULL_SCRIPT_REWRITE_WITH_SUMMARY_PROMPT.format(
+            character_context=character_context,
             formatted_spreads=formatted_spreads,
             edit_request=edit_request,
         )
@@ -164,6 +205,33 @@ def rewrite_full_script_with_summary(
         return parsed
     except Exception as e:
         raise ValueError(f"Failed to rewrite script with summary: {e}")
+
+
+def _build_spread_character_context(storybook_id: str, spreads: List[Dict]) -> str:
+    """Build character context for each spread."""
+    character_contexts = []
+    
+    for spread in spreads:
+        spread_number = spread.get("spread_number")
+        if spread_number:
+            characters = get_characters_for_spread(storybook_id, spread_number)
+            if characters:
+                char_names = [char.character_name for char in characters]
+                char_descriptions = []
+                for char in characters:
+                    desc = f"{char.character_name}"
+                    if char.description:
+                        desc += f": {char.description}"
+                    char_descriptions.append(desc)
+                character_contexts.append(
+                    f"Spread {spread_number} characters: {', '.join(char_names)}\n"
+                    f"  Details: {'; '.join(char_descriptions)}"
+                )
+    
+    if character_contexts:
+        return "Character Information by Spread:\n" + "\n".join(character_contexts)
+    else:
+        return "No page-specific character information available. Use storybook-level characters."
 
 
 def _format_spreads_for_prompt(spreads: List[Dict]) -> str:

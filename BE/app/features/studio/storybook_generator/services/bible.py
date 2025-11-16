@@ -12,6 +12,7 @@ from app.shared.llm.base import Provider, generate_structured
 from app.shared.llm.llm_config import DEFAULT_BIBLE_PROVIDER, DEFAULT_BIBLE_MODEL
 from app.shared.database.supabase_client import supabase
 from ..output_schemas.bible import StoryBibleSchema, SettingOnlySchema, Character
+from .utils import get_characters_for_page
 
 
 def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
@@ -124,6 +125,62 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
         if isinstance(e, ValueError):
             raise
         raise ValueError(f"Failed to generate story bible for {storybook_id}: {e}")
+
+
+def enrich_bible_with_page_characters(storybook_id: str, bible: StoryBibleSchema) -> StoryBibleSchema:
+    """
+    Enrich bible with page-specific characters by merging characters from all pages.
+    
+    Args:
+        storybook_id: The storybook ID
+        bible: The StoryBibleSchema to enrich
+        
+    Returns:
+        StoryBibleSchema with merged characters (deduplicated by character_name)
+    """
+    try:
+        # Fetch all pages for this storybook
+        pages_response = supabase.table("pages").select("id, character_ids").eq("storybook_id", storybook_id).execute()
+        
+        if not pages_response.data:
+            # No pages found, return bible as-is
+            return bible
+        
+        # Collect all unique characters from pages
+        character_map = {}  # character_name -> Character
+        
+        # First, add existing bible characters
+        for char in bible.characters:
+            character_map[char.character_name] = char
+        
+        # Then, add characters from pages
+        for page_data in pages_response.data:
+            page_id = page_data.get("id")
+            if page_id:
+                page_characters = get_characters_for_page(page_id, storybook_id)
+                for char in page_characters:
+                    # Only add if not already present (by character_name)
+                    if char.character_name not in character_map:
+                        character_map[char.character_name] = char
+        
+        # Create new bible with merged characters
+        enriched_bible = StoryBibleSchema(
+            characters=list(character_map.values()),
+            name=bible.name,
+            time_period=bible.time_period,
+            location_type=bible.location_type,
+            description=bible.description,
+            world_rules=bible.world_rules,
+            main_theme=bible.main_theme,
+            main_conflict=bible.main_conflict,
+            conflict_resolution=bible.conflict_resolution
+        )
+        
+        return enriched_bible
+        
+    except Exception as e:
+        # On error, return original bible
+        return bible
 
 
 def _load_prompt_template(template_name: str) -> str:

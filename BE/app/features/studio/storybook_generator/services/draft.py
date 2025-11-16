@@ -12,6 +12,7 @@ from app.shared.llm.base import Provider, generate_structured
 from app.shared.llm.llm_config import DEFAULT_DRAFT_PROVIDER, DEFAULT_DRAFT_MODEL
 from app.shared.database.supabase_client import supabase
 from ..output_schemas.draft import FinalScriptSchema
+from .utils import get_characters_for_spread
 
 
 def generate_final_script(storybook_id: str) -> FinalScriptSchema:
@@ -79,6 +80,10 @@ def generate_final_script(storybook_id: str) -> FinalScriptSchema:
         formatted_prompt = formatted_prompt.replace("{{story_bible}}", story_bible_text)
         formatted_prompt = formatted_prompt.replace("{{story_arc}}", story_arc_text)
         
+        # Get page-specific character information for each spread
+        page_specific_characters_text = _build_page_specific_characters_text(storybook_id)
+        formatted_prompt = formatted_prompt.replace("{{page_specific_characters}}", page_specific_characters_text)
+        
         # Generate structured output
         result = generate_structured(
             provider=Provider(DEFAULT_DRAFT_PROVIDER),
@@ -98,6 +103,41 @@ def generate_final_script(storybook_id: str) -> FinalScriptSchema:
         if isinstance(e, ValueError):
             raise
         raise ValueError(f"Failed to generate final script for {storybook_id}: {e}")
+
+
+def _build_page_specific_characters_text(storybook_id: str) -> str:
+    """
+    Build text describing page-specific characters for each spread.
+    
+    Args:
+        storybook_id: The storybook ID
+        
+    Returns:
+        Formatted text with spread-specific character information
+    """
+    spread_characters_text = []
+    
+    for spread_number in range(1, 15):  # Spreads 1-14
+        characters = get_characters_for_spread(storybook_id, spread_number)
+        
+        if characters:
+            char_names = [char.character_name for char in characters]
+            char_descriptions = []
+            for char in characters:
+                desc = f"{char.character_name}"
+                if char.description:
+                    desc += f": {char.description}"
+                char_descriptions.append(desc)
+            
+            spread_characters_text.append(
+                f"Spread {spread_number}: {', '.join(char_names)}\n"
+                f"  Character details: {'; '.join(char_descriptions)}"
+            )
+    
+    if spread_characters_text:
+        return "\n".join(spread_characters_text)
+    else:
+        return "No page-specific character information available. Use storybook-level characters from the Story Bible."
 
 
 def _load_prompt_template(template_name: str) -> str:

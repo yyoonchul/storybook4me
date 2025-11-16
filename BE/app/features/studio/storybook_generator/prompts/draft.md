@@ -13,6 +13,9 @@ You are a children's picture book expert. Create the final script following the 
 **Story Arc**: {{story_arc}}
 *Follow the 14-spread structure and act progression defined in the story arc to create the narrative flow.*
 
+**Page-Specific Characters**: {{page_specific_characters}}
+*Use the characters specified for each spread when writing the script for that spread. If a spread has specific characters listed, prioritize using those characters in that spread's script. If no page-specific characters are listed for a spread, use the characters from the Story Bible.*
+
 ## Core Requirements
 
 **Format**: 14 spreads × 2 pages = 28 pages total  
