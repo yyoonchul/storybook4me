@@ -99,10 +99,11 @@ Return a JSON object that matches the FinalRewriteSchema structure:
 
 
 def rewrite_plain_text(
-    original_text: str, 
+    original_text: str,
     edit_request: str,
     page_id: Optional[str] = None,
-    storybook_id: Optional[str] = None
+    storybook_id: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> str:
     """
     Rewrite plain text based on user's edit request.
@@ -155,7 +156,13 @@ def rewrite_plain_text(
         result = generate_text(
             provider=Provider(DEFAULT_REWRITE_PROVIDER),
             model=DEFAULT_REWRITE_MODEL,
-            input_text=prompt
+            input_text=prompt,
+            user_id=user_id,
+            usage_metadata={
+                "storybook_id": storybook_id,
+                "page_id": page_id,
+                "service": "studio.rewrite.plain_text",
+            },
         )
         
         return result.text or original_text
@@ -164,16 +171,26 @@ def rewrite_plain_text(
         raise ValueError(f"Failed to rewrite text: {e}")
 
 
-def rewrite_full_script(script_data: Dict, edit_request: str) -> Dict:
+def rewrite_full_script(
+    script_data: Dict,
+    edit_request: str,
+    requesting_user_id: Optional[str] = None,
+) -> Dict:
     """
     Backwards-compatible wrapper that returns only the rewritten script.
     """
-    rewrite_result = rewrite_full_script_with_summary(script_data, edit_request)
+    rewrite_result = rewrite_full_script_with_summary(
+        script_data,
+        edit_request,
+        requesting_user_id=requesting_user_id,
+    )
     return rewrite_result.model_dump(exclude={"change_summary"})
 
 
 def rewrite_full_script_with_summary(
-    script_data: Dict, edit_request: str
+    script_data: Dict,
+    edit_request: str,
+    requesting_user_id: Optional[str] = None,
 ) -> FinalRewriteSchema:
     """
     Rewrite the entire storybook script and provide a natural-language change summary.
@@ -192,11 +209,17 @@ def rewrite_full_script_with_summary(
             formatted_spreads=formatted_spreads,
             edit_request=edit_request,
         )
+        billing_user_id = requesting_user_id or script_data.get("user_id")
         result = generate_structured(
             provider=Provider(DEFAULT_REWRITE_PROVIDER),
             model=DEFAULT_REWRITE_MODEL,
             input_text=prompt,
             schema=FinalRewriteSchema,
+            user_id=billing_user_id,
+            usage_metadata={
+                "storybook_id": storybook_id,
+                "service": "studio.rewrite.full_script",
+            },
         )
         parsed: FinalRewriteSchema = result.parsed
         # Ensure identifiers remain consistent with the source script.

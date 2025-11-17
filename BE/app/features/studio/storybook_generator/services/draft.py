@@ -89,7 +89,12 @@ def generate_final_script(storybook_id: str) -> FinalScriptSchema:
             provider=Provider(DEFAULT_DRAFT_PROVIDER),
             model=DEFAULT_DRAFT_MODEL,
             input_text=formatted_prompt,
-            schema=FinalScriptSchema
+            schema=FinalScriptSchema,
+            user_id=user_id,
+            usage_metadata={
+                "storybook_id": storybook_id,
+                "service": "storybook.draft.final_script",
+            },
         )
         
         # Set storybook_id and user_id from database

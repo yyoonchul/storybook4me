@@ -43,7 +43,10 @@ async def handle_studio_chat(
         )
 
     try:
-        classification = classify_message(payload.message)
+        classification = classify_message(
+            payload.message,
+            user_id=current_user_id,
+        )
     except Exception as exc:  # pragma: no cover - LLM failures are rare but possible
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -52,7 +55,11 @@ async def handle_studio_chat(
 
     if classification.action == "question":
         try:
-            assistant_message = answer_question(payload.script, payload.message)
+            assistant_message = answer_question(
+                payload.script,
+                payload.message,
+                user_id=current_user_id,
+            )
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -68,6 +75,7 @@ async def handle_studio_chat(
         rewrite_result = rewrite_full_script_with_summary(
             script_data=payload.script.model_dump(),
             edit_request=payload.message,
+            requesting_user_id=current_user_id,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -117,6 +125,7 @@ async def rewrite_storybook_script(
         rewritten_script_data = rewrite_full_script(
             script_data=payload.script.model_dump(),
             edit_request=payload.edit_request,
+            requesting_user_id=current_user_id,
         )
     except ValueError as exc:
         raise HTTPException(

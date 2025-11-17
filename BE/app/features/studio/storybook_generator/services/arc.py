@@ -33,16 +33,24 @@ def generate_story_arc(storybook_id: str) -> StoryArcSchema:
     
     try:
         # Fetch storybook from database
-        response = supabase.table("storybooks").select("creation_params").eq("id", storybook_id).execute()
+        response = (
+            supabase.table("storybooks")
+            .select("creation_params, user_id")
+            .eq("id", storybook_id)
+            .execute()
+        )
         
         if not response.data:
             raise ValueError(f"Storybook with id {storybook_id} not found")
         
         storybook_data = response.data[0]
         creation_params = storybook_data.get("creation_params")
+        user_id = storybook_data.get("user_id")
         
         if not creation_params:
             raise ValueError(f"Storybook {storybook_id} has no creation_params")
+        if not user_id:
+            raise ValueError(f"Storybook {storybook_id} has no user_id")
         
         # Extract prompt from creation_params
         user_input = creation_params.get("prompt", "")
@@ -70,7 +78,12 @@ def generate_story_arc(storybook_id: str) -> StoryArcSchema:
             provider=Provider(DEFAULT_ARC_PROVIDER),
             model=DEFAULT_ARC_MODEL,
             input_text=formatted_prompt,
-            schema=StoryArcSchema
+            schema=StoryArcSchema,
+            user_id=user_id,
+            usage_metadata={
+                "storybook_id": storybook_id,
+                "service": "storybook.arc",
+            },
         )
         
         story_arc = result.parsed

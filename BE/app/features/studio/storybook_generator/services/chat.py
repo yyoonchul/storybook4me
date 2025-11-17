@@ -41,7 +41,7 @@ Answer the question in 2-4 sentences:
 """
 
 
-def classify_message(message: str) -> ClassificationSchema:
+def classify_message(message: str, user_id: str | None = None) -> ClassificationSchema:
     """Classify the incoming chat message using an LLM with heuristic fallback."""
     try:
         result = generate_structured(
@@ -49,6 +49,10 @@ def classify_message(message: str) -> ClassificationSchema:
             model=DEFAULT_REWRITE_MODEL,
             input_text=CLASSIFICATION_PROMPT.format(message=message),
             schema=ClassificationSchema,
+            user_id=user_id,
+            usage_metadata={
+                "service": "studio.chat.classify",
+            },
         )
         return result.parsed
     except Exception as exc:
@@ -59,7 +63,11 @@ def classify_message(message: str) -> ClassificationSchema:
         return ClassificationSchema(action=action)
 
 
-def answer_question(script: FinalScriptSchema, message: str) -> str:
+def answer_question(
+    script: FinalScriptSchema,
+    message: str,
+    user_id: str | None = None,
+) -> str:
     """
     Provide a natural-language answer to a question about the current story.
     """
@@ -72,6 +80,11 @@ def answer_question(script: FinalScriptSchema, message: str) -> str:
         provider=Provider(DEFAULT_REWRITE_PROVIDER),
         model=DEFAULT_REWRITE_MODEL,
         input_text=prompt,
+        user_id=user_id,
+        usage_metadata={
+            "service": "studio.chat.answer",
+            "storybook_id": script.storybook_id,
+        },
     )
     if not result.text:
         raise ValueError("Failed to generate an answer for the question.")

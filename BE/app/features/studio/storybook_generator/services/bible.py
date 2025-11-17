@@ -34,16 +34,23 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
     
     try:
         # Fetch storybook from database
-        response = supabase.table("storybooks").select("creation_params").eq("id", storybook_id).execute()
+        response = (
+            supabase.table("storybooks")
+            .select("creation_params, user_id")
+            .eq("id", storybook_id)
+            .execute()
+        )
         
         if not response.data:
             raise ValueError(f"Storybook with id {storybook_id} not found")
         
         storybook_data = response.data[0]
         creation_params = storybook_data.get("creation_params")
-        
+        user_id = storybook_data.get("user_id")
         if not creation_params:
             raise ValueError(f"Storybook {storybook_id} has no creation_params")
+        if not user_id:
+            raise ValueError(f"Storybook {storybook_id} has no user_id")
         
         # Extract prompt from creation_params
         user_input = creation_params.get("prompt", "")
@@ -79,7 +86,13 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
                 provider=Provider(DEFAULT_BIBLE_PROVIDER),
                 model=DEFAULT_BIBLE_MODEL,
                 input_text=formatted_prompt,
-                schema=SettingOnlySchema
+                schema=SettingOnlySchema,
+                user_id=user_id,
+                usage_metadata={
+                    "storybook_id": storybook_id,
+                    "service": "storybook.bible.setting_only",
+                    "preset_characters": True,
+                },
             )
             setting_only = result.parsed
             
@@ -106,7 +119,13 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
                 provider=Provider(DEFAULT_BIBLE_PROVIDER),
                 model=DEFAULT_BIBLE_MODEL,
                 input_text=formatted_prompt,
-                schema=StoryBibleSchema
+                schema=StoryBibleSchema,
+                user_id=user_id,
+                usage_metadata={
+                    "storybook_id": storybook_id,
+                    "service": "storybook.bible.full_generation",
+                    "preset_characters": False,
+                },
             )
             story_bible = result.parsed
         

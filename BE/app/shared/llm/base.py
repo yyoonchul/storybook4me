@@ -12,6 +12,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from .usage_tracker import record_llm_usage
+
 
 class Provider(str, Enum):
     """Supported LLM providers."""
@@ -39,7 +41,14 @@ def estimate_tokens(text: str) -> int:
     return max(1, math.ceil(len(text) / 4))
 
 
-def generate_text(provider: Provider, model: str, input_text: str) -> LLMResult:
+def generate_text(
+    provider: Provider,
+    model: str,
+    input_text: str,
+    *,
+    user_id: str | None = None,
+    usage_metadata: dict[str, Any] | None = None,
+) -> LLMResult:
     """
     Generate text from the specified provider.
     
@@ -80,12 +89,21 @@ def generate_text(provider: Provider, model: str, input_text: str) -> LLMResult:
         if output_tok is None:
             output_tok = estimate_tokens(text)
         
-        return LLMResult(
+        result = LLMResult(
             text=text,
             parsed=None,
             input_tokens=input_tok,
             output_tokens=output_tok,
         )
+        record_llm_usage(
+            user_id=user_id,
+            provider=str(provider),
+            model=model,
+            input_tokens=input_tok,
+            output_tokens=output_tok,
+            metadata=usage_metadata,
+        )
+        return result
     
     except ImportError as e:
         raise ValueError(f"Provider {provider} SDK not installed: {e}")
@@ -98,6 +116,9 @@ def generate_structured(
     model: str,
     input_text: str,
     schema: type[BaseModel],
+    *,
+    user_id: str | None = None,
+    usage_metadata: dict[str, Any] | None = None,
 ) -> LLMResult:
     """
     Generate structured output validated against a Pydantic schema.
@@ -152,12 +173,21 @@ def generate_structured(
         if output_tok is None:
             output_tok = estimate_tokens(text)
         
-        return LLMResult(
+        result = LLMResult(
             text=text,
             parsed=parsed,
             input_tokens=input_tok,
             output_tokens=output_tok,
         )
+        record_llm_usage(
+            user_id=user_id,
+            provider=str(provider),
+            model=model,
+            input_tokens=input_tok,
+            output_tokens=output_tok,
+            metadata=usage_metadata,
+        )
+        return result
     
     except ImportError as e:
         raise ValueError(f"Provider {provider} SDK not installed: {e}")
