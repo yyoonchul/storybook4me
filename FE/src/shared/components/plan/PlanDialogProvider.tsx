@@ -1,20 +1,36 @@
-import Header from "../shared/components/layout/Header";
-import Footer from "../shared/components/layout/Footer";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../shared/components/ui/card";
-import { Button } from "../shared/components/ui/button";
-import { Badge } from "../shared/components/ui/badge";
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "../shared/components/ui/table";
-import { PricingTable, SignInButton, SignedOut } from "@clerk/clerk-react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { PricingTable, SignedOut, SignInButton } from "@clerk/clerk-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { Button } from "@/shared/components/ui/button";
 import { clerkBillingConfig } from "@/shared/lib/billing";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
 
-const PricingPage = () => {
+type PlanDialogContextValue = {
+  openPlanDialog: () => void;
+  closePlanDialog: () => void;
+};
+
+const PlanDialogContext = createContext<PlanDialogContextValue | undefined>(undefined);
+
+export const PlanDialogProvider = ({ children }: { children: ReactNode }) => {
+  const [open, setOpen] = useState(false);
+
+  const openPlanDialog = useCallback(() => setOpen(true), []);
+  const closePlanDialog = useCallback(() => setOpen(false), []);
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <h1 className="text-4xl font-bold mb-3">Pricing</h1>
-          <p className="text-gray-600 mb-10">Get started fast. Choose the plan that fits your needs.</p>
+    <PlanDialogContext.Provider value={{ openPlanDialog, closePlanDialog }}>
+      {children}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-6">
+          <DialogHeader className="text-left">
+            <DialogTitle>Choose Your Plan</DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground">
+              Pick the plan that fits your workflow. Upgrade anytime.
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="rounded-3xl border border-border/80 bg-card/60 p-6 shadow-lg shadow-purple-100/40">
             <PricingTable
@@ -28,28 +44,34 @@ const PricingPage = () => {
                   },
                 },
               }}
-              fallback={<LegacyPricingFallback />}
+              fallback={<LegacyPlanFallback />}
             />
           </div>
 
           <SignedOut>
-            <div className="text-center mt-10 border border-dashed rounded-2xl p-8">
+            <div className="text-center border border-dashed rounded-2xl p-6">
               <p className="text-muted-foreground">Sign in to start a Clerk-managed subscription.</p>
               <SignInButton mode="modal">
                 <Button className="mt-4">Sign in to continue</Button>
               </SignInButton>
             </div>
           </SignedOut>
-        </div>
-      </main>
-      <Footer />
-    </div>
+        </DialogContent>
+      </Dialog>
+    </PlanDialogContext.Provider>
   );
 };
 
-export default PricingPage;
+export const usePlanDialog = () => {
+  const context = useContext(PlanDialogContext);
+  if (!context) {
+    throw new Error("usePlanDialog must be used within a PlanDialogProvider");
+  }
 
-const LegacyPricingFallback = () => (
+  return context;
+};
+
+const LegacyPlanFallback = () => (
   <>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card className="flex flex-col hover-lift transition-all duration-300 hover:shadow-lg">
@@ -138,3 +160,5 @@ const LegacyPricingFallback = () => (
     </div>
   </>
 );
+
+

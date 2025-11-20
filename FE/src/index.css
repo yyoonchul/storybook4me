@@ -134,3 +134,53 @@
 .animate-ping-slow {
   animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
+
+/* Clerk Checkout Drawer z-index fix - Ensure it appears above header (z-50) */
+/* Target all possible Clerk modal/drawer elements with fixed/absolute positioning */
+[data-clerk-element],
+[data-clerk-portal],
+[class*="cl-modal"],
+[class*="cl-drawer"],
+[class*="cl-checkout"],
+[class*="clerk-checkout"],
+[class*="clerk"],
+[id*="clerk"],
+div[role="dialog"],
+aside[role="dialog"],
+section[role="dialog"] {
+  z-index: 10000 !important;
+}
+
+/* Fixed/absolute positioned Clerk elements - highest priority */
+[data-clerk-element][style*="fixed"],
+[data-clerk-element][style*="absolute"],
+[class*="cl"][style*="fixed"],
+[class*="cl"][style*="absolute"],
+div[style*="fixed"][id*="clerk"],
+div[style*="absolute"][id*="clerk"] {
+  z-index: 10000 !important;
+}
+
+/* Portal containers for Clerk modals - body direct children */
+body > div[class*="cl"],
+body > div[id*="clerk"],
+body > div[data-clerk],
+body > section[class*="cl"],
+body > aside[class*="cl"],
+body > div[style*="position: fixed"],
+body > div[style*="position:fixed"] {
+  z-index: 10000 !important;
+}
+
+/* Overlay/backdrop elements */
+[class*="overlay"],
+[class*="backdrop"],
+[class*="modal-overlay"],
+[style*="position: fixed"][style*="z-index"] {
+  z-index: 9999 !important;
+}
+
+/* Lower header z-index slightly to ensure Clerk modals appear above */
+header[class*="sticky"] {
+  z-index: 40 !important;
+}

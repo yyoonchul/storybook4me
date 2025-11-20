@@ -68,8 +68,8 @@ const Header = () => {
               <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">
                 Explore
               </Link>
-              <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-                Pricing
+              <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
+                About
               </Link>
             </SignedOut>
           </nav>
