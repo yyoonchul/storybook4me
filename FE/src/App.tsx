@@ -43,34 +43,34 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <PlanDialogProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ErrorBoundary>
-              <ScrollToTopWrapper />
-              <Routes>
-                <Route path="/" element={<MainPage />} />
-                <Route path="/welcome" element={<WelcomePage />} />
-                {/* Family handled within MainPage's section; no standalone /family route */}
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/studio" element={<StudioPage />} />
-                <Route path="/studio/:id" element={<StudioPage />} />
-                <Route path="/book/:id" element={<BookViewerPage />} />
-                <Route path="/settings/account" element={<AccountPage />} />
-                <Route path="/settings/billing" element={<BillingPage />} />
-                <Route path="/family/character/:id" element={<CharacterFormPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/faq" element={<FAQPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/terms" element={<TermsPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                {/* Temporary test route for file upload API */}
-                <Route path="/test-upload" element={<TestUploadPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ErrorBoundary>
-          </BrowserRouter>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundary>
+            <ScrollToTopWrapper />
+            <Routes>
+              <Route path="/" element={<MainPage />} />
+              <Route path="/welcome" element={<WelcomePage />} />
+              {/* Family handled within MainPage's section; no standalone /family route */}
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/studio" element={<StudioPage />} />
+              <Route path="/studio/:id" element={<StudioPage />} />
+              <Route path="/book/:id" element={<BookViewerPage />} />
+              <Route path="/settings/account" element={<AccountPage />} />
+              <Route path="/settings/billing" element={<BillingPage />} />
+              <Route path="/family/character/:id" element={<CharacterFormPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              {/* Temporary test route for file upload API */}
+              <Route path="/test-upload" element={<TestUploadPage />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </BrowserRouter>
         </PlanDialogProvider>
       </TooltipProvider>
     </QueryClientProvider>

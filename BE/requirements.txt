@@ -12,3 +12,4 @@ google-genai>=1.43.0
 anthropic>=0.69.0
 Pillow==10.4.0
 requests>=2.31.0
+svix>=1.40.0

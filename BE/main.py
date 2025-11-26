@@ -14,6 +14,7 @@ from app.features.studio.api.data import router as studio_data_router
 from app.features.studio.storybook_generator.api import (
     router as studio_rewrite_router,
 )
+from app.features.billing.api import router as billing_router
 
 
 def create_app() -> FastAPI:
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
         prefix="/api/studio/storybooks",
         tags=["studio-rewrite"],
     )
+    app.include_router(billing_router, prefix="/api/billing", tags=["billing"])
     
     # Removed temporary global validation handler
     

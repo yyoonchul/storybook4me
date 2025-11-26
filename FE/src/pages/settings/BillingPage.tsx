@@ -130,9 +130,9 @@ const BillingPage = () => {
                   </Button>
                 ) : (
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
-                    <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                       View available plans to upgrade your subscription.
-                    </p>
+                  </p>
                     <Button onClick={openPlanDialog} className="sm:w-max">
                       View plans
                     </Button>

@@ -15,9 +15,11 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     
-    # Clerk 설정 (JWT 검증용)
+    # Clerk 설정 (JWT 검증 및 웹훅)
     clerk_domain: str
     clerk_audience: str
+    clerk_webhook_signing_secret: str = ""
+    clerk_plus_plan_id: str = ""
     
     # Image generation API keys (optional, defaults to .env)
     google_api_key: str = ""
