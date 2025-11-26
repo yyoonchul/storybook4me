@@ -76,3 +76,25 @@ def sync_subscription_plan(event: Dict[str, Any]) -> None:
     except Exception as exc:
         raise SubscriptionSyncError(f"Failed to upsert subscription: {exc}") from exc
 
+
+def get_user_subscription_plan(user_id: str) -> str:
+    """
+    Get the user's subscription plan type from the subscriptions table.
+    
+    Returns "free" if no subscription record exists or plan_type is null.
+    Returns "plus" if the user has a plus plan.
+    """
+    try:
+        response = supabase.table("subscriptions").select("plan_type").eq("user_id", user_id).single().execute()
+        
+        if response.data and response.data.get("plan_type"):
+            plan_type = response.data["plan_type"]
+            # Ensure we only return valid plan types
+            if plan_type in ("free", "plus"):
+                return plan_type
+        
+        return "free"
+    except Exception:
+        # If no record found or any error, default to "free"
+        return "free"
+

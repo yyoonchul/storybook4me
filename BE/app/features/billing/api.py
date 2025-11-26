@@ -1,11 +1,12 @@
 """Billing webhook endpoints."""
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.config import settings
-from app.features.billing.services import sync_subscription_plan, SubscriptionSyncError
+from app.features.billing.services import sync_subscription_plan, SubscriptionSyncError, get_user_subscription_plan
+from app.features.auth.deps import get_current_user_id
 
 import logging
 
@@ -82,4 +83,20 @@ async def handle_clerk_billing_webhook(
         logger.info("Skipping unsupported billing event type: %s", event_type)
 
     return JSONResponse({"status": "ok"})
+
+
+@router.get("/subscription")
+async def get_subscription(current_user_id: str = Depends(get_current_user_id)):
+    """
+    Get the current user's subscription plan type.
+    
+    Returns the plan_type from the subscriptions table, defaulting to "free" if not found.
+    """
+    try:
+        plan_type = get_user_subscription_plan(current_user_id)
+        return {"plan_type": plan_type}
+    except Exception as e:
+        logger.exception("Failed to get subscription plan for user %s: %s", current_user_id, e)
+        # Return "free" as default on error
+        return {"plan_type": "free"}
 

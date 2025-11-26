@@ -4,6 +4,7 @@ import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useSession } from "@clerk/clerk-react";
 import { Button } from "../shared/components/ui/button";
+import { Badge } from "../shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../shared/components/ui/card";
 import { Input } from "../shared/components/ui/input";
 import { Textarea } from "../shared/components/ui/textarea";
@@ -39,6 +40,8 @@ import { GenerateButton } from "../features/studio/components/GenerateButton";
 import { ThinkingMessage } from "../features/studio/components/ThinkingMessage";
 import { useToast } from "../shared/hooks/use-toast";
 import { postStudioChat, type FinalScript, type StorybookPage } from "../features/studio";
+import { useSubscription } from "@/features/billing";
+import { usePlanDialog } from "@/shared/components/plan/PlanDialogProvider";
 
 // Initial chat messages based on access method
 const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
@@ -68,6 +71,9 @@ const StudioPage = () => {
   const [mainConcept, setMainConcept] = useState(prompt || "");
   const [hasGenerated, setHasGenerated] = useState(false); // Track if generation has been initiated
   const { toast } = useToast();
+  const { planType } = useSubscription();
+  const { openPlanDialog } = usePlanDialog();
+  const isFreePlan = planType === "free";
   
   // Determine access type and set initial chat message
   const getAccessType = (): 'prompt' | 'create' | 'edit' => {
@@ -85,9 +91,30 @@ const StudioPage = () => {
   const accessType = getAccessType();
   const isEditMode = accessType === 'edit';
   
-  const [chatHistory, setChatHistory] = useState<Array<{ role: "assistant" | "user"; content: string }>>([
-    { role: "assistant", content: getInitialChatMessage(accessType) }
-  ]);
+  // Get initial chat message based on plan and access type
+  const getInitialChatMessageWithPlanCheck = (): string => {
+    const baseMessage = getInitialChatMessage(accessType);
+    if (isFreePlan && accessType === 'edit') {
+      return `${baseMessage}\n\n💡 Note: AI chat editing is available with a Plus subscription. Upgrade to unlock unlimited story improvements!`;
+    }
+    return baseMessage;
+  };
+
+  const [chatHistory, setChatHistory] = useState<Array<{ role: "assistant" | "user"; content: string }>>(() => {
+    return [{ role: "assistant", content: getInitialChatMessage(accessType) }];
+  });
+  
+  // Update initial message when plan type or access type changes (only if still on initial message)
+  useEffect(() => {
+    // Only update if we're still on the initial assistant message
+    if (chatHistory.length === 1 && chatHistory[0].role === "assistant") {
+      const newMessage = getInitialChatMessageWithPlanCheck();
+      if (chatHistory[0].content !== newMessage) {
+        setChatHistory([{ role: "assistant", content: newMessage }]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFreePlan, accessType]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Determine which section to highlight based on access type
@@ -432,6 +459,26 @@ const StudioPage = () => {
     const trimmed = chatMessage.trim();
     if (!trimmed) return;
 
+    // Check if user is on free plan and block chat API calls
+    if (isFreePlan) {
+      setChatHistory(prev => [
+        ...prev,
+        { role: "user", content: trimmed },
+        {
+          role: "assistant",
+          content: "AI chat editing is a Plus feature! Upgrade to unlock unlimited story improvements and AI-powered editing capabilities. 🚀"
+        }
+      ]);
+      setChatMessage("");
+      toast({
+        title: "Plus Feature Required",
+        description: "AI chat editing is only available with a Plus subscription.",
+        variant: "default",
+      });
+      openPlanDialog();
+      return;
+    }
+
     setChatHistory(prev => [...prev, { role: "user", content: trimmed }]);
     setChatMessage("");
     setIsGenerating(true);
@@ -681,6 +728,9 @@ const StudioPage = () => {
           <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
             <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
               <h3 className="text-sm font-semibold">AI Storyteller</h3>
+              {isFreePlan && (
+                <Badge variant="secondary" className="text-xs">Plus Feature</Badge>
+              )}
             </div>
 
             <div className="flex-1 overflow-hidden h-0">
@@ -705,53 +755,110 @@ const StudioPage = () => {
                         </div>
                       </>
                     ) : (
-                      chatHistory.map((message, index) => (
-                        <div
-                          key={index}
-                          className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
+                      <>
+                        {chatHistory.map((message, index) => (
                           <div
-                            className={`max-w-[80%] rounded-lg p-3 ${
-                              message.role === 'user'
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-white border'
-                            }`}
+                            key={index}
+                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                           >
-                            <p className="text-sm">{message.content}</p>
+                            <div
+                              className={`max-w-[80%] rounded-lg p-3 ${
+                                message.role === 'user'
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-white border'
+                              }`}
+                            >
+                              <p className="text-sm">{message.content}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                        {/* Free plan upgrade prompt */}
+                        {isFreePlan && chatHistory.length <= 1 && (
+                          <div className="flex justify-start">
+                            <Card className="max-w-[90%] border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-1">🚀 Unlock AI Chat Editing</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      Upgrade to Plus to use AI-powered story editing and get unlimited improvements!
+                                    </p>
+                                  </div>
+                                  <ul className="text-xs space-y-1 text-muted-foreground ml-2">
+                                    <li>✓ Unlimited AI chat editing</li>
+                                    <li>✓ Full access to premium AI models</li>
+                                    <li>✓ Real-time story improvements</li>
+                                  </ul>
+                                  <Button 
+                                    onClick={openPlanDialog} 
+                                    size="sm" 
+                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                                  >
+                                    Upgrade to Plus
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+                      </>
                     )}
                     {isGenerating && <ThinkingMessage type={thinkingType} />}
                   </div>
                 </ScrollArea>
 
                 <div className="p-4 border-t flex-shrink-0">
-                  <div className="flex gap-2">
-                    <Input
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      placeholder="Tell me what you'd like to change..."
-                      onKeyDown={(e) => {
-                        if (e.key !== 'Enter') return;
-                        const isComposing =
-                          typeof e.nativeEvent === 'object' &&
-                          'isComposing' in e.nativeEvent &&
-                          (e.nativeEvent as KeyboardEvent).isComposing;
-                        if (isComposing) {
-                          return;
-                        }
-                        e.preventDefault();
-                        void handleSendMessage();
-                      }}
-                    />
-                    <Button onClick={() => { void handleSendMessage(); }} disabled={!chatMessage.trim() || isGenerating}>
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Try: "Make the rabbit playful" or "Change to watercolor style"
-                  </p>
+                  {isFreePlan ? (
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Plus feature - Upgrade to unlock..."
+                          disabled
+                          className="opacity-60"
+                        />
+                        <Button onClick={openPlanDialog} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                          <Plus className="w-4 h-4 mr-1" />
+                          Upgrade
+                        </Button>
+                      </div>
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <p className="text-xs font-medium text-purple-900 mb-1">🔒 AI Chat Editing Locked</p>
+                        <p className="text-xs text-purple-700">
+                          This feature requires a Plus subscription. Upgrade now to unlock unlimited AI-powered story improvements!
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Tell me what you'd like to change..."
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter') return;
+                            const isComposing =
+                              typeof e.nativeEvent === 'object' &&
+                              'isComposing' in e.nativeEvent &&
+                              (e.nativeEvent as KeyboardEvent).isComposing;
+                            if (isComposing) {
+                              return;
+                            }
+                            e.preventDefault();
+                            void handleSendMessage();
+                          }}
+                        />
+                        <Button onClick={() => { void handleSendMessage(); }} disabled={!chatMessage.trim() || isGenerating}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Try: "Make the rabbit playful" or "Change to watercolor style"
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

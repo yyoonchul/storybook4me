@@ -7,11 +7,11 @@ import { SignedIn, SignedOut, SignInButton, PricingTable } from "@clerk/clerk-re
 import { clerkBillingConfig } from "@/shared/lib/billing";
 import { useEffect } from "react";
 import { usePlanDialog } from "@/shared/components/plan/PlanDialogProvider";
+import { useSubscription } from "@/features/billing";
 
 const BillingPage = () => {
-  // TODO: Fetch actual subscription status from Clerk API
-  // For now, assume Free plan if no subscription is found
-  const hasPlusSubscription = false; // This should be fetched from Clerk
+  const { planType } = useSubscription();
+  const hasPlusSubscription = planType === "plus";
   const { openPlanDialog } = usePlanDialog();
 
   // Fix Clerk checkout drawer z-index dynamically
