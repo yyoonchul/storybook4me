@@ -1,5 +1,5 @@
 import { Toaster } from "./shared/components/ui/toaster";
-import { Toaster as Sonner } from "./shared/components/ui/sonner";
+import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "./shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -46,7 +46,7 @@ const App = () => {
         <SubscriptionProvider>
           <PlanDialogProvider>
             <Toaster />
-            <Sonner />
+            <Sonner position="top-right" richColors />
             <BrowserRouter>
               <ErrorBoundary>
                 <ScrollToTopWrapper />

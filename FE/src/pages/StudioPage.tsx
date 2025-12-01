@@ -39,6 +39,7 @@ import { StorybookPreview } from "../features/studio/components/StorybookPreview
 import { GenerateButton } from "../features/studio/components/GenerateButton";
 import { ThinkingMessage } from "../features/studio/components/ThinkingMessage";
 import { useToast } from "../shared/hooks/use-toast";
+import { toast } from "sonner";
 import { postStudioChat, type FinalScript, type StorybookPage } from "../features/studio";
 import { useSubscription } from "@/features/billing";
 import { usePlanDialog } from "@/shared/components/plan/PlanDialogProvider";

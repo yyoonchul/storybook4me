@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { storybookApi } from "@/features/storybook";
 import { useSession, useUser } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 type ViewerPage = { id: string; text?: string; imageUrl?: string };
 type ViewerStory = { id: string; title: string; pages: ViewerPage[]; ownerUserId?: string };
@@ -67,20 +68,30 @@ const BookViewerPage = () => {
   };
 
   const handlePlayAudio = () => {
-    setIsPlaying(!isPlaying);
-    // TODO: Implement audio playback
-    console.log("Toggle audio playback");
+    toast.info("Coming Soon!", {
+      description: "Audio narration feature is currently in development.",
+    });
   };
 
-  const handleShare = () => {
-    // TODO: Implement sharing functionality
-    navigator.clipboard.writeText(window.location.href);
-    console.log("Story link copied to clipboard");
+  const handleShare = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      toast.success("Link copied to clipboard!", {
+        description: "You can now share this story with others.",
+      });
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      toast.error("Failed to copy link", {
+        description: "Please try again.",
+      });
+    }
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export story as PDF");
+    toast.info("Coming Soon!", {
+      description: "Download feature is currently in development.",
+    });
   };
 
   const handleEdit = () => {
