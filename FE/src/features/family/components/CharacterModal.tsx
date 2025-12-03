@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { Upload, Trash2 } from "lucide-react";
 import { familyApi } from "../api";
+import { toast } from "sonner";
 
 interface Character {
   id?: string;
@@ -71,19 +72,6 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
     }
   }, [isEditing, characterId, initialData, form]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        form.setValue("image", result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const onSubmit = (data: Character) => {
     onSave({ ...data, id: characterId });
     onClose();
@@ -97,7 +85,16 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      // 사용자가 ESC나 바깥 클릭 등으로 모달을 닫을 때만 onClose를 호출하고,
+      // 부모가 isOpen을 true로 설정하는 경우에는 다시 닫히지 않도록 보호한다.
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{readOnly ? "Character" : isEditing ? "Edit Character" : "Add New Character"}</DialogTitle>
@@ -119,13 +116,20 @@ const CharacterModal = ({ isOpen, onClose, characterId, onSave, onDelete, readOn
                 </Card>
                 {!readOnly ? (
                   <div>
-                    <label className="cursor-pointer">
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      <Button type="button" variant="outline" size="sm" asChild>
-                        <span>Choose Photo</span>
-                      </Button>
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        toast("Image upload coming soon", {
+                          description: "You'll be able to upload custom character images in a future update.",
+                          duration: 4000,
+                        })
+                      }
+                    >
+                      Choose Photo
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-1">Image upload will be available soon.</p>
                   </div>
                 ) : null}
               </div>

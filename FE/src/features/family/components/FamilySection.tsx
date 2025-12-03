@@ -61,8 +61,17 @@ export const FamilySection = () => {
     return () => { mounted = false; };
   }, [isLoaded, session]);
 
+  const handleCloseModal = () => {
+    setCharacterModalOpen(false);
+    // 새 캐릭터 생성 플로우와 기존 캐릭터 편집 플로우를 명확히 분리하기 위해
+    // 모달을 닫을 때 선택된 캐릭터 관련 상태를 항상 초기화한다.
+    setSelectedCharacterId(undefined);
+    setSelectedInitialData(undefined);
+  };
+
   const handleAddCharacter = () => {
     setSelectedCharacterId(undefined);
+    setSelectedInitialData(undefined);
     setCharacterModalOpen(true);
   };
 
@@ -190,7 +199,7 @@ export const FamilySection = () => {
 
         <CharacterModal
           isOpen={characterModalOpen}
-          onClose={() => setCharacterModalOpen(false)}
+          onClose={handleCloseModal}
           characterId={selectedCharacterId}
           onSave={handleSaveCharacter}
           onDelete={handleDeleteCharacter}

@@ -30,6 +30,9 @@ async def handle_clerk_billing_webhook(
     sync subscriptions can hook into the verified payload later.
     """
 
+    # Debug-level log to confirm that the endpoint is being hit at all
+    logger.info("Incoming request to /api/billing/webhooks/clerk")
+
     missing_headers = [
         name
         for name, value in (
