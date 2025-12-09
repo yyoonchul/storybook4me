@@ -20,3 +20,4 @@ class GenerateStorybookRequest(BaseModel):
         description="Desired page count. If omitted, it will be set to the generated page total.",
     )
 
+

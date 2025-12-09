@@ -9,6 +9,8 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type StorybookPreviewProps = {
   storybook: any;
   currentPage: number;
+  activeSide: 'left' | 'right';
+  onSideChange: (side: 'left' | 'right') => void;
   isLoading: boolean;
   error: string | null;
   pageText: string | null | undefined;
@@ -25,6 +27,8 @@ type StorybookPreviewProps = {
 export function StorybookPreview({
   storybook,
   currentPage, // spread index
+  activeSide,
+  onSideChange,
   isLoading,
   error,
   pageText,
@@ -98,8 +102,12 @@ export function StorybookPreview({
               <div className="text-red-500 text-center py-4">Error loading storybook: {error}</div>
             ) : (
               <Textarea
-                value={pageText ?? ''}
-                onChange={(e) => setPageText(e.target.value)}
+                value={activeSide === 'left' ? (pageText ?? '') : (leftPage?.script_text || leftPage?.scriptText || '')}
+                onChange={(e) => {
+                  if (activeSide !== 'left') onSideChange('left');
+                  setPageText(e.target.value);
+                }}
+                onFocus={() => onSideChange('left')}
                 className="w-full h-full text-base leading-relaxed text-gray-700 resize-none border-0 bg-transparent p-0 focus:ring-0 focus:border-0"
                 placeholder="Enter your story text here..."
                 disabled={isPageFetching}
@@ -139,9 +147,17 @@ export function StorybookPreview({
           </div>
           <div className="w-full max-w-xl bg-white/90 border border-gray-200 shadow-sm rounded-md p-3 h-[150px] overflow-auto">
             {rightPage ? (
-              <p className="text-base leading-relaxed text-gray-700 whitespace-pre-wrap">
-                {rightPage?.script_text || rightPage?.scriptText || ''}
-              </p>
+              <Textarea
+                value={activeSide === 'right' ? (pageText ?? '') : (rightPage?.script_text || rightPage?.scriptText || '')}
+                onChange={(e) => {
+                  if (activeSide !== 'right') onSideChange('right');
+                  setPageText(e.target.value);
+                }}
+                onFocus={() => onSideChange('right')}
+                className="w-full h-full text-base leading-relaxed text-gray-700 resize-none border-0 bg-transparent p-0 focus:ring-0 focus:border-0"
+                placeholder="Enter your story text here..."
+                disabled={isPageFetching}
+              />
             ) : (
               <p className="text-base text-muted-foreground text-center py-6">No content for this page yet.</p>
             )}

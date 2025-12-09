@@ -66,6 +66,7 @@ const StudioPage = () => {
   const initialMode = searchParams.get("mode");
 
   const [currentPage, setCurrentPage] = useState(0); // represents spread index (2 pages per spread)
+  const [activeSide, setActiveSide] = useState<'left' | 'right'>('left'); // which page in the spread is being edited
   const [isGenerating, setIsGenerating] = useState(false);
   const [thinkingType, setThinkingType] = useState<"initial" | "edit" | "question">("initial");
   const [chatMessage, setChatMessage] = useState("");
@@ -203,7 +204,7 @@ const StudioPage = () => {
   }, [id, isLoaded, session]);
   
   // Current page content editing - using same pattern as title editing
-  const currentPageNumber = storybook?.pages?.[currentPage * 2]?.page_number;
+  const currentPageNumber = storybook?.pages?.[currentPage * 2 + (activeSide === 'right' ? 1 : 0)]?.page_number;
   const { 
     text: pageText, 
     setText: setPageText, 
@@ -218,6 +219,7 @@ const StudioPage = () => {
       const spreadCount = Math.max(1, Math.ceil(storybook.pages.length / 2));
       if (currentPage >= spreadCount) {
         setCurrentPage(0);
+        setActiveSide('left');
       }
     }
   }, [storybook?.pages?.length, currentPage]);
@@ -591,6 +593,7 @@ const StudioPage = () => {
           // Navigate to the spread containing the new page
           const spreadIdx = Math.floor((res.storybook?.pages?.length ? res.storybook.pages.length - 1 : 0) / 2);
           setCurrentPage(spreadIdx);
+          setActiveSide('left');
         } catch (err) {
           console.error('Failed to refresh storybook:', err);
         }
@@ -613,6 +616,7 @@ const StudioPage = () => {
           if (currentPage >= spreadCount) {
             setCurrentPage(Math.max(0, spreadCount - 1));
           }
+          setActiveSide('left');
         } catch (err) {
           console.error('Failed to refresh storybook:', err);
         }
@@ -959,6 +963,8 @@ const StudioPage = () => {
                   <StorybookPreview
                     storybook={storybook}
                     currentPage={currentPage}
+                    activeSide={activeSide}
+                    onSideChange={setActiveSide}
                     isLoading={isStorybookLoading}
                     error={storybookError}
                     pageText={pageText}
@@ -974,7 +980,7 @@ const StudioPage = () => {
 
                   {/* Navigation */}
                   <div className="p-4 bg-white/80 backdrop-blur-sm border-t flex justify-between items-center flex-shrink-0">
-                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -990,7 +996,8 @@ const StudioPage = () => {
                         size="sm"
                         onClick={() => {
                           const spreadCount = Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2));
-                          setCurrentPage(Math.min(spreadCount - 1, currentPage + 1));
+                              setCurrentPage(Math.min(spreadCount - 1, currentPage + 1));
+                              setActiveSide('left');
                         }}
                         disabled={
                           currentPage >= Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2)) - 1
@@ -1004,6 +1011,7 @@ const StudioPage = () => {
                     <div className="flex items-center gap-3 text-sm text-muted-foreground">
                       <span>
                         Page {currentPage * 2 + 1} - {Math.min((storybook?.pages?.length || 0), currentPage * 2 + 2)} of {storybook?.pages?.length || 0}
+                        {` (editing ${activeSide === 'left' ? 'left' : 'right'} page)`}
                       </span>
                     </div>
                     

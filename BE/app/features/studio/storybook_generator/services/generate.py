@@ -129,3 +129,4 @@ def generate_storybook_with_script(user_id: str, payload: GenerateStorybookReque
     # 5) Return hydrated storybook with pages
     return storybook_service.get_storybook(user_id, storybook.id)
 
+
