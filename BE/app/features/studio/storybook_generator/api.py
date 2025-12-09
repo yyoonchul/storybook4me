@@ -9,15 +9,30 @@ from app.features.auth.deps import get_current_user_id
 from .models import (
     ChatRequest,
     ChatResponse,
+    GenerateStorybookRequest,
     RewriteScriptRequest,
     RewriteScriptResponse,
 )
 from .output_schemas.draft import FinalScriptSchema
 from .services.chat import answer_question, classify_message
+from .services.generate import generate_storybook_with_script
 from .services.rewrite import rewrite_full_script, rewrite_full_script_with_summary
+from app.features.storybook.models import StorybookResponse
 
 
 router = APIRouter()
+
+@router.post(
+    "/generate",
+    response_model=StorybookResponse,
+    summary="Generate a new storybook (settings -> bible/arc/script/pages)",
+)
+async def generate_storybook(
+    payload: GenerateStorybookRequest,
+    current_user_id: str = Depends(get_current_user_id),
+) -> StorybookResponse:
+    storybook = generate_storybook_with_script(current_user_id, payload)
+    return StorybookResponse(storybook=storybook)
 
 
 @router.post(

@@ -65,7 +65,7 @@ const StudioPage = () => {
   const prompt = searchParams.get("prompt");
   const initialMode = searchParams.get("mode");
 
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0); // represents spread index (2 pages per spread)
   const [isGenerating, setIsGenerating] = useState(false);
   const [thinkingType, setThinkingType] = useState<"initial" | "edit" | "question">("initial");
   const [chatMessage, setChatMessage] = useState("");
@@ -203,7 +203,7 @@ const StudioPage = () => {
   }, [id, isLoaded, session]);
   
   // Current page content editing - using same pattern as title editing
-  const currentPageNumber = storybook?.pages?.[currentPage]?.page_number;
+  const currentPageNumber = storybook?.pages?.[currentPage * 2]?.page_number;
   const { 
     text: pageText, 
     setText: setPageText, 
@@ -214,8 +214,11 @@ const StudioPage = () => {
 
   // Reset current page when storybook changes
   useEffect(() => {
-    if (storybook?.pages?.length && currentPage >= storybook.pages.length) {
-      setCurrentPage(0);
+    if (storybook?.pages?.length) {
+      const spreadCount = Math.max(1, Math.ceil(storybook.pages.length / 2));
+      if (currentPage >= spreadCount) {
+        setCurrentPage(0);
+      }
     }
   }, [storybook?.pages?.length, currentPage]);
 
@@ -552,9 +555,17 @@ const StudioPage = () => {
 
 
   const handleFinishStory = () => {
-    // Generate new ID for completed story
-    const newId = `completed-${Date.now()}`;
-    navigate(`/book/${newId}`);
+    // Navigate to the actual storybook if it exists; otherwise block
+    const targetId = storybook?.id || id;
+    if (!targetId) {
+      toast({
+        title: "Save failed",
+        description: "Please generate a storybook first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate(`/book/${targetId}`);
   };
 
   const handleBack = () => {
@@ -577,8 +588,9 @@ const StudioPage = () => {
           const token = await session?.getToken({ template: 'storybook4me' });
           const res = await storybookApi.get(id, token || undefined);
           setStorybook(res.storybook);
-          // Navigate to the new page
-          setCurrentPage(storybook?.pages?.length || 0);
+          // Navigate to the spread containing the new page
+          const spreadIdx = Math.floor((res.storybook?.pages?.length ? res.storybook.pages.length - 1 : 0) / 2);
+          setCurrentPage(spreadIdx);
         } catch (err) {
           console.error('Failed to refresh storybook:', err);
         }
@@ -596,9 +608,10 @@ const StudioPage = () => {
           const token = await session?.getToken({ template: 'storybook4me' });
           const res = await storybookApi.get(id, token || undefined);
           setStorybook(res.storybook);
-          // Adjust current page if needed
-          if (currentPage >= (storybook?.pages?.length || 1) - 1) {
-            setCurrentPage(Math.max(0, (storybook?.pages?.length || 1) - 2));
+          // Adjust current spread if needed
+          const spreadCount = Math.max(1, Math.ceil((res.storybook?.pages?.length || 1) / 2));
+          if (currentPage >= spreadCount) {
+            setCurrentPage(Math.max(0, spreadCount - 1));
           }
         } catch (err) {
           console.error('Failed to refresh storybook:', err);
@@ -612,38 +625,51 @@ const StudioPage = () => {
     setShowDeleteDialog(true);
   };
 
-  const handleGenerate = () => {
-    console.log('Generate clicked with settings:', {
-      mainConcept,
-      selectedCharacters,
-      selectedArtStyle: STYLES[artStyleIndex]
-    });
-    
-    // Immediately transition to chat + preview mode (showing skeleton loading)
+  const handleGenerate = async () => {
     setHasGenerated(true);
     setIsGenerating(true);
     setShowChatPanel(true);
     setRightMode('preview');
-    
-    // Add initial loading message to chat
     setChatHistory([
       { role: "assistant", content: "Your story is being created! Please wait..." }
     ]);
-    
-    // Simulate generation completion after 2 seconds
-    setTimeout(() => {
-      setIsGenerating(false);
+
+    try {
+      const token = await session?.getToken({ template: 'storybook4me' });
+      const response = await storybookApi.generate({
+        title: liveTitle || '',
+        prompt: mainConcept,
+        characterIds: selectedCharacters,
+        style: STYLES[artStyleIndex]?.title,
+        theme: '',
+        pageCount: 28,
+      }, token || undefined);
+
+      const generated = response.storybook;
+      setStorybook(generated);
       setChatHistory([
         { role: "assistant", content: "Your story has been created! I'm here to help you refine it. What would you like to change?" }
       ]);
-    }, 2000);
-    
-    // TODO: Backend connection
-    // When backend is ready, replace the setTimeout with actual API call:
-    // const token = await session?.getToken({ template: 'storybook4me' });
-    // await storybookApi.generate(id, { mainConcept, characterIds: selectedCharacters, style: STYLES[artStyleIndex].title }, token);
-    // const res = await storybookApi.get(id, token);
-    // setStorybook(res.storybook);
+      setIsGenerating(false);
+
+      // Navigate to the generated storybook if we weren't already on it
+      if (!id || id !== generated.id) {
+        navigate(`/studio/${generated.id}?mode=preview`, { replace: true });
+      }
+    } catch (error: any) {
+      const message = error?.message || 'Failed to generate storybook';
+      console.error('Generate failed:', error);
+      setChatHistory([
+        { role: "assistant", content: "Failed to create your story. Please adjust settings and try again." }
+      ]);
+      toast({
+        title: "Generation failed",
+        description: message,
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+      setHasGenerated(false);
+    }
   };
 
   if (isGenerating && !id) {
@@ -962,23 +988,23 @@ const StudioPage = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage(Math.min((storybook?.pages?.length || 1) - 1, currentPage + 1))}
-                        disabled={currentPage === (storybook?.pages?.length || 1) - 1}
+                        onClick={() => {
+                          const spreadCount = Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2));
+                          setCurrentPage(Math.min(spreadCount - 1, currentPage + 1));
+                        }}
+                        disabled={
+                          currentPage >= Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2)) - 1
+                        }
                       >
                         Next
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
                     
-                    <div className="flex gap-1">
-                      {storybook?.pages?.map((_, index) => (
-                        <div
-                          key={index}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            index === currentPage ? 'bg-purple-500' : 'bg-gray-300'
-                          }`}
-                        />
-                      ))}
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span>
+                        Page {currentPage * 2 + 1} - {Math.min((storybook?.pages?.length || 0), currentPage * 2 + 2)} of {storybook?.pages?.length || 0}
+                      </span>
                     </div>
                     
                     <Button
@@ -1087,7 +1113,7 @@ const StudioPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleDeletePage(currentPage + 1)}
+              onClick={() => handleDeletePage((storybook?.pages?.[currentPage * 2]?.page_number ?? (currentPage * 2 + 1)))}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Delete Page
