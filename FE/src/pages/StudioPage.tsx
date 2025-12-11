@@ -138,6 +138,17 @@ const StudioPage = () => {
   
   // Title editing (debounced autosave)
   const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
+  // Prefill title from prompt (first 10 words) when creating a new storybook (no id yet)
+  useEffect(() => {
+    if (id) return; // existing storybook, keep server title
+    if (liveTitle && liveTitle.trim().length > 0) return; // don't override user input
+    if (!prompt) return;
+    const words = prompt.trim().split(/\s+/).filter(Boolean);
+    const candidate = words.slice(0, 10).join(' ');
+    if (candidate) {
+      setLiveTitle(candidate);
+    }
+  }, [id, liveTitle, prompt, setLiveTitle]);
   
   // Page management
   const { addPage, deletePage, isAdding, isDeleting, error: pageManagementError, clearError } = usePageManagement(id);

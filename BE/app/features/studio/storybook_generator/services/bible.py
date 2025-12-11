@@ -57,8 +57,8 @@ def generate_story_bible(storybook_id: str) -> StoryBibleSchema:
         if not user_input:
             raise ValueError(f"Storybook {storybook_id} has no prompt in creation_params")
         
-        # Check for preset characters
-        character_ids = creation_params.get("character_ids", [])
+        # Check for preset characters (prefer creation_params; fall back to storybook field)
+        character_ids = creation_params.get("character_ids") or storybook_data.get("character_ids") or []
         
         if character_ids:
             # === Path 1: Use preset characters ===
