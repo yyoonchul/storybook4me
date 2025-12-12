@@ -2,6 +2,10 @@
 
 FastAPI backend application following feature-based architecture.
 
+## Notes
+
+- Dependencies pinned to resolve `anyio` resolver conflicts: `openai==1.67.0`, `google-genai==1.55.0`, `anyio>=4.8,<5`.
+
 ## Setup
 
 1. Create a virtual environment:
