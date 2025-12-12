@@ -18,7 +18,7 @@ export interface PublicStorybookSummary {
   coverImageUrl?: string;
   author: AuthorInfo;
   category?: string;
-  tags: string[];
+  tags?: string[];
   likeCount: number;
   viewCount: number;
   pageCount: number;

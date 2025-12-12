@@ -77,14 +77,14 @@ export function StoryCard({ story, onLike, variant = 'default' }: StoryCardProps
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex flex-wrap gap-1">
-                  {story.tags.slice(0, 2).map((tag, index) => (
+                  {(story.tags || []).slice(0, 2).map((tag, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {tag}
                     </Badge>
                   ))}
-                  {story.tags.length > 2 && (
+                  {(story.tags || []).length > 2 && (
                     <Badge variant="outline" className="text-xs">
-                      +{story.tags.length - 2}
+                      +{(story.tags || []).length - 2}
                     </Badge>
                   )}
                 </div>

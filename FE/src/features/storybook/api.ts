@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/lib/api-client';
-import { StorybookListResponse, StorybookResponse, CreateStorybookRequest, UpdateStorybookRequest, UpdateVisibilityRequest } from './types.ts';
+import { StorybookListResponse, StorybookResponse, CreateStorybookRequest, UpdateStorybookRequest, UpdateVisibilityRequest, GenerateStorybookRequest } from './types.ts';
 
 export const storybookApi = {
   list: (
@@ -15,6 +15,7 @@ export const storybookApi = {
     return apiClient.get<StorybookListResponse>(endpoint, token);
   },
   create: (body: CreateStorybookRequest, token?: string) => apiClient.post<StorybookResponse>('storybooks', body as any, token),
+  generate: (body: GenerateStorybookRequest, token?: string) => apiClient.post<StorybookResponse>('studio/storybooks/generate', body as any, token),
   get: (id: string, token?: string) => apiClient.get<StorybookResponse>(`storybooks/${id}`, token),
   update: (id: string, body: UpdateStorybookRequest, token?: string) => apiClient.put<StorybookResponse>(`storybooks/${id}`, body, token),
   setVisibility: (id: string, body: UpdateVisibilityRequest, token?: string) => apiClient.put<StorybookResponse>(`storybooks/${id}/visibility`, body as any, token),

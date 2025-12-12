@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { StoryCard } from "../features/explore/components/StoryCard";
 import { Input } from "../shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../shared/components/ui/select";
+import { Button } from "../shared/components/ui/button";
 import { Search } from "lucide-react";
 import { useExploreStories, useCategories } from "../features/explore/hooks";
 import { SortType } from "../features/explore/types";
@@ -23,6 +24,16 @@ const ExplorePage = () => {
     fetchStories({
       q: query || undefined,
       category: category === 'all' ? undefined : category,
+      sort: sortBy,
+      limit: 50
+    });
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategory(value);
+    fetchStories({
+      q: query || undefined,
+      category: value === 'all' ? undefined : value,
       sort: sortBy,
       limit: 50
     });
@@ -61,8 +72,14 @@ const ExplorePage = () => {
                 />
               </div>
             </div>
+            <div className="w-full sm:w-auto sm:min-w-[120px]">
+              <Button className="w-full" onClick={handleSearch}>
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </Button>
+            </div>
             <div className="w-full sm:w-auto sm:min-w-[140px]">
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={handleCategoryChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -114,13 +131,13 @@ const ExplorePage = () => {
                 </a>
               </div>
             </div>
-          ) : stories.length === 0 ? (
+          ) : !stories || stories.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">No stories found. Try adjusting your filters.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stories.map((story) => (
+              {stories?.map((story) => (
                 <StoryCard key={story.id} story={story} />
               ))}
             </div>

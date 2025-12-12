@@ -1,5 +1,5 @@
 import { Toaster } from "./shared/components/ui/toaster";
-import { Toaster as Sonner } from "./shared/components/ui/sonner";
+import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "./shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -9,7 +9,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainPage from "./pages/MainPage";
 import WelcomePage from "./pages/WelcomePage";
 import ExplorePage from "./pages/ExplorePage";
-import PricingPage from "./pages/PricingPage";
 import StudioPage from "./pages/StudioPage";
 import BookViewerPage from "./pages/BookViewerPage";
 import AccountPage from "./pages/settings/AccountPage";
@@ -26,6 +25,8 @@ import { LandingPage } from "@/features/landing";
 import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 // Clerk is provided at root in main.tsx; remove legacy AuthProvider
 import { useScrollToTop } from "./shared/hooks/useScrollToTop";
+import { PlanDialogProvider } from "@/shared/components/plan/PlanDialogProvider";
+import { SubscriptionProvider } from "@/features/billing";
 
 
 const queryClient = new QueryClient();
@@ -42,35 +43,38 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ErrorBoundary>
-            <ScrollToTopWrapper />
-            <Routes>
-              <Route path="/" element={<MainPage />} />
-              <Route path="/welcome" element={<WelcomePage />} />
-              {/* Family handled within MainPage's section; no standalone /family route */}
-              <Route path="/explore" element={<ExplorePage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/studio" element={<StudioPage />} />
-              <Route path="/studio/:id" element={<StudioPage />} />
-              <Route path="/book/:id" element={<BookViewerPage />} />
-              <Route path="/settings/account" element={<AccountPage />} />
-              <Route path="/settings/billing" element={<BillingPage />} />
-              <Route path="/family/character/:id" element={<CharacterFormPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/faq" element={<FAQPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              {/* Temporary test route for file upload API */}
-              <Route path="/test-upload" element={<TestUploadPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ErrorBoundary>
-        </BrowserRouter>
+        <SubscriptionProvider>
+          <PlanDialogProvider>
+            <Toaster />
+            <Sonner position="top-right" richColors />
+            <BrowserRouter>
+              <ErrorBoundary>
+                <ScrollToTopWrapper />
+                <Routes>
+                  <Route path="/" element={<MainPage />} />
+                  <Route path="/welcome" element={<WelcomePage />} />
+                  {/* Family handled within MainPage's section; no standalone /family route */}
+                  <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/studio" element={<StudioPage />} />
+                  <Route path="/studio/:id" element={<StudioPage />} />
+                  <Route path="/book/:id" element={<BookViewerPage />} />
+                  <Route path="/settings/account" element={<AccountPage />} />
+                  <Route path="/settings/billing" element={<BillingPage />} />
+                  <Route path="/family/character/:id" element={<CharacterFormPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/faq" element={<FAQPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  {/* Temporary test route for file upload API */}
+                  <Route path="/test-upload" element={<TestUploadPage />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </PlanDialogProvider>
+        </SubscriptionProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

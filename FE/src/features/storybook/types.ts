@@ -51,6 +51,15 @@ export interface CreateStorybookRequest {
   prompt?: string;
 }
 
+export interface GenerateStorybookRequest {
+  title?: string;
+  prompt: string;
+  characterIds?: string[];
+  style?: string;
+  theme?: string;
+  pageCount?: number;
+}
+
 export interface UpdateStorybookRequest {
   title?: string;
   category?: string;

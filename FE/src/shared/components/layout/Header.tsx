@@ -1,14 +1,16 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Settings, CreditCard, LogOut } from "lucide-react";
 import { SignedIn, SignedOut, SignInButton, SignUpButton, SignOutButton, UserButton, useClerk } from "@/features/auth";
+import { useSubscription } from "@/features/billing";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { openUserProfile } = useClerk();
-  
+  const { planType } = useSubscription();
 
   const scrollOrNavigate = (targetId: string) => {
     if (location.pathname === "/") {
@@ -68,8 +70,8 @@ const Header = () => {
               <Link to="/explore" className="text-sm font-medium transition-colors hover:text-primary">
                 Explore
               </Link>
-              <Link to="/pricing" className="text-sm font-medium transition-colors hover:text-primary">
-                Pricing
+              <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
+                About
               </Link>
             </SignedOut>
           </nav>
@@ -85,6 +87,12 @@ const Header = () => {
             </SignUpButton>
           </SignedOut>
           <SignedIn>
+            <Badge 
+              variant={planType === "plus" ? "default" : "secondary"}
+              className="mr-2"
+            >
+              {planType === "plus" ? "Plus" : "Free"}
+            </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div>

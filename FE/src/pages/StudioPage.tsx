@@ -1,58 +1,62 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useLayoutEffect, useCallback } from "react";
+import { useStudioTitle, usePageText, usePageManagement, useCharacterSelection } from "../features/studio/hooks";
+import { storybookApi } from "@/features/storybook";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useSession } from "@clerk/clerk-react";
 import { Button } from "../shared/components/ui/button";
+import { Badge } from "../shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../shared/components/ui/card";
 import { Input } from "../shared/components/ui/input";
 import { Textarea } from "../shared/components/ui/textarea";
 import { Separator } from "../shared/components/ui/separator";
 import { ScrollArea } from "../shared/components/ui/scroll-area";
 import { 
-  Sparkles, 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../shared/components/ui/alert-dialog";
+import { 
   ChevronLeft, 
   ChevronRight, 
   Send,
   Wand2,
   ArrowLeft,
-  Loader2
+  Loader2,
+  Plus,
+  Trash2,
+  User
 } from "lucide-react";
+import { CharacterSelectionModal } from "../features/studio/components/CharacterSelectionModal";
+import { MainConceptSection } from "../features/studio/components/MainConceptSection";
+import { SelectedCharactersSection } from "../features/studio/components/SelectedCharactersSection";
+import { ArtStyleCarousel, STYLES } from "../features/studio/components/ArtStyleCarousel";
+import { StorybookPreview } from "../features/studio/components/StorybookPreview";
+import { GenerateButton } from "../features/studio/components/GenerateButton";
+import { ThinkingMessage } from "../features/studio/components/ThinkingMessage";
+import { useToast } from "../shared/hooks/use-toast";
+import { toast } from "sonner";
+import { postStudioChat, type FinalScript, type StorybookPage } from "../features/studio";
+import { useSubscription } from "@/features/billing";
+import { usePlanDialog } from "@/shared/components/plan/PlanDialogProvider";
 
-// Mock story data for editing
-const mockStoryData = {
-  id: "1",
-  title: "The Dawn of Nova",
-  pages: [
-    {
-      id: 1,
-      text: "In the year 2157, young Nova gazed out at the stars from her space station home. The twinkling lights seemed to whisper secrets of distant worlds waiting to be discovered.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - happy, spacesuit"],
-      background: "Space station window view",
-      objects: ["stars", "space station interior"]
-    },
-    {
-      id: 2,
-      text: "Nova's robot companion, Zyx, whirred softly beside her. 'The exploration ship arrives tomorrow,' Zyx announced with excitement in his digital voice.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - excited", "Zyx - animated"],
-      background: "Space station room",
-      objects: ["control panels", "holographic displays"]
-    },
-    {
-      id: 3,
-      text: "As the massive exploration vessel docked, Nova felt her heart race with anticipation. This was her chance to explore the unknown regions of the galaxy.",
-      imageUrl: "/cover.png",
-      characters: ["Nova - determined"],
-      background: "Docking bay",
-      objects: ["exploration ship", "docking equipment"]
-    }
-  ]
+// Initial chat messages based on access method
+const getInitialChatMessage = (accessType: 'prompt' | 'create' | 'edit') => {
+  switch (accessType) {
+    case 'prompt':
+      return "Great! I can see your story idea. Now let's bring it to life! Choose your characters and art style to get started.";
+    case 'create':
+      return "Welcome to your story studio! First, tell me about your main concept, then we'll pick characters and art style together.";
+    case 'edit':
+      return "Ready to enhance your story? Tell me what you'd like to change - characters, scenes, dialogue, or anything else!";
+    default:
+      return "Hello! I'm your AI storytelling assistant. How would you like to improve your story today?";
+  }
 };
-
-const mockChatHistory = [
-  { role: "assistant", content: "Hello! I'm your AI storytelling assistant. How would you like to improve your story today?" },
-  { role: "user", content: "Make Nova look more excited in the first page" },
-  { role: "assistant", content: "Great idea! I've updated Nova's expression to show more excitement. Her eyes are now sparkling with wonder as she looks at the stars. Would you like me to adjust anything else?" }
-];
 
 const StudioPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,12 +65,249 @@ const StudioPage = () => {
   const prompt = searchParams.get("prompt");
   const initialMode = searchParams.get("mode");
 
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0); // represents spread index (2 pages per spread)
+  const [activeSide, setActiveSide] = useState<'left' | 'right'>('left'); // which page in the spread is being edited
   const [isGenerating, setIsGenerating] = useState(false);
+  const [thinkingType, setThinkingType] = useState<"initial" | "edit" | "question">("initial");
   const [chatMessage, setChatMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState(mockChatHistory);
-  const [storyData, setStoryData] = useState(mockStoryData);
-  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(initialMode === 'settings' ? 'settings' : 'preview');
+  const [mainConcept, setMainConcept] = useState(prompt || "");
+  const [hasGenerated, setHasGenerated] = useState(false); // Track if generation has been initiated
+  const { toast } = useToast();
+  const { planType } = useSubscription();
+  const { openPlanDialog } = usePlanDialog();
+  const isFreePlan = planType === "free";
+  
+  // Determine access type and set initial chat message
+  const getAccessType = (): 'prompt' | 'create' | 'edit' => {
+    // URL에 prompt 파라미터가 있으면 프롬프트로 진입
+    if (prompt) return 'prompt';
+    // mode=settings 파라미터가 있으면 새로 생성된 스토리 (Create New)
+    if (initialMode === 'settings') return 'create';
+    // ID가 있으면 기존 스토리 편집
+    if (id) return 'edit';
+    // 그 외는 Create New
+    return 'create';
+  };
+  
+  // Store the access type to determine UI behavior
+  const accessType = getAccessType();
+  const isEditMode = accessType === 'edit';
+  
+  // Get initial chat message based on plan and access type
+  const getInitialChatMessageWithPlanCheck = (): string => {
+    const baseMessage = getInitialChatMessage(accessType);
+    if (isFreePlan && accessType === 'edit') {
+      return `${baseMessage}\n\n💡 Note: AI chat editing is available with a Plus subscription. Upgrade to unlock unlimited story improvements!`;
+    }
+    return baseMessage;
+  };
+
+  const [chatHistory, setChatHistory] = useState<Array<{ role: "assistant" | "user"; content: string }>>(() => {
+    return [{ role: "assistant", content: getInitialChatMessage(accessType) }];
+  });
+  
+  // Update initial message when plan type or access type changes (only if still on initial message)
+  useEffect(() => {
+    // Only update if we're still on the initial assistant message
+    if (chatHistory.length === 1 && chatHistory[0].role === "assistant") {
+      const newMessage = getInitialChatMessageWithPlanCheck();
+      if (chatHistory[0].content !== newMessage) {
+        setChatHistory([{ role: "assistant", content: newMessage }]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFreePlan, accessType]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // Determine which section to highlight based on access type
+  const getHighlightedSection = () => {
+    const accessType = getAccessType();
+    switch (accessType) {
+      case 'prompt':
+        return 'characters'; // 프롬프트로 진입하면 캐릭터 선택부터
+      case 'create':
+        return 'concept'; // Create New로 진입하면 메인 콘셉부터
+      case 'edit':
+        return null; // Edit은 하이라이트 없음
+      default:
+        return null;
+    }
+  };
+  
+  const highlightedSection = getHighlightedSection();
+  
+  // Title editing (debounced autosave)
+  const { title: liveTitle, setTitle: setLiveTitle, status: titleStatus, isFetching: isTitleFetching } = useStudioTitle(id);
+  // Prefill title from prompt (first 10 words) when creating a new storybook (no id yet)
+  useEffect(() => {
+    if (id) return; // existing storybook, keep server title
+    if (liveTitle && liveTitle.trim().length > 0) return; // don't override user input
+    if (!prompt) return;
+    const words = prompt.trim().split(/\s+/).filter(Boolean);
+    const candidate = words.slice(0, 10).join(' ');
+    if (candidate) {
+      setLiveTitle(candidate);
+    }
+  }, [id, liveTitle, prompt, setLiveTitle]);
+  
+  // Page management
+  const { addPage, deletePage, isAdding, isDeleting, error: pageManagementError, clearError } = usePageManagement(id);
+  
+  // Character selection
+  const {
+    myCharacters,
+    presetCharacters,
+    selectedCharacters,
+    isLoading: isCharactersLoading,
+    error: charactersError,
+    toggleCharacter,
+    isCharacterSelected,
+    clearSelection,
+    selectAll,
+    loadCharacters
+  } = useCharacterSelection();
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
+  // Art style carousel state
+  const [artStyleIndex, setArtStyleIndex] = useState(0);
+  const artCarouselRef = useRef<HTMLDivElement | null>(null);
+
+  // Load characters on modal open (handles token timing and 403 retry in hook)
+  useEffect(() => {
+    if (showCharacterModal && (myCharacters.length === 0 && presetCharacters.length === 0) && !isCharactersLoading) {
+      loadCharacters();
+    }
+  }, [showCharacterModal]);
+  
+  // Storybook data - using same approach as BookViewerPage
+  const [storybook, setStorybook] = useState<any>(null);
+  const [isStorybookLoading, setIsStorybookLoading] = useState(true);
+  const [storybookError, setStorybookError] = useState<string | null>(null);
+  const { session, isLoaded } = useSession();
+  
+  // Determine if this is first-time setup (no pages yet)
+  // Only calculate when storybook data is loaded, otherwise assume loading
+  // Also check if generation has been initiated - once generated, it's no longer first-time setup
+  const isFirstTimeSetup = storybook !== null && (!storybook?.pages || storybook.pages.length === 0) && !hasGenerated;
+
+  // Load storybook data
+  useEffect(() => {
+    if (!id || !isLoaded) return;
+    let mounted = true;
+    setIsStorybookLoading(true);
+    setStorybookError(null);
+    (async () => {
+      try {
+        const token = await session?.getToken({ template: 'storybook4me' });
+        const res = await storybookApi.get(id, token || undefined);
+        if (!mounted) return;
+        setStorybook(res.storybook);
+      } catch (e: any) {
+        if (!mounted) return;
+        setStorybookError(e?.message || 'Failed to load storybook');
+      } finally {
+        if (!mounted) return;
+        setIsStorybookLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id, isLoaded, session]);
+  
+  // Current page content editing - using same pattern as title editing
+  const currentPageNumber = storybook?.pages?.[currentPage * 2 + (activeSide === 'right' ? 1 : 0)]?.page_number;
+  const { 
+    text: pageText, 
+    setText: setPageText, 
+    status: pageStatus, 
+    error: pageError, 
+    isFetching: isPageFetching 
+  } = usePageText(id, currentPageNumber || undefined);
+
+  // Reset current page when storybook changes
+  useEffect(() => {
+    if (storybook?.pages?.length) {
+      const spreadCount = Math.max(1, Math.ceil(storybook.pages.length / 2));
+      if (currentPage >= spreadCount) {
+        setCurrentPage(0);
+        setActiveSide('left');
+      }
+    }
+  }, [storybook?.pages?.length, currentPage]);
+
+  // Debug: Log storybook data
+  useEffect(() => {
+    if (storybook) {
+      console.log('Storybook loaded:', storybook);
+      console.log('Pages:', storybook.pages);
+    }
+  }, [storybook]);
+  // 접근 방법에 따른 초기 모드 결정 (based on pages existence)
+  const getInitialMode = (): 'preview' | 'settings' => {
+    // URL 파라미터로 명시적으로 설정된 경우
+    if (initialMode === 'settings') return 'settings';
+    if (initialMode === 'preview') return 'preview';
+    
+    // If we have loaded storybook data, check pages
+    if (storybook !== null) {
+      // If pages exist, start with preview (editing mode)
+      if (storybook.pages && storybook.pages.length > 0) {
+        return 'preview';
+      }
+      // No pages, start with settings (first-time setup)
+      return 'settings';
+    }
+    
+    // While loading, default based on access method
+    // 프롬프트가 있으면 새 스토리 생성 → settings 모드
+    if (prompt) return 'settings';
+    
+    // id가 있으면 기존 스토리 편집 → preview 모드
+    if (id) return 'preview';
+    
+    // 기본값은 settings (새 스토리 생성)
+    return 'settings';
+  };
+  
+  const [rightMode, setRightMode] = useState<'preview' | 'settings'>(() => {
+    // In edit mode (id exists), start with preview; otherwise settings
+    // Note: We use id here because isEditMode is not available in useState initializer
+    // Edit mode: id exists without prompt or mode=settings
+    const isEdit = id && !prompt && initialMode !== 'settings';
+    return isEdit ? 'preview' : 'settings';
+  });
+  
+  // State to control chat panel visibility
+  const [showChatPanel, setShowChatPanel] = useState(() => {
+    // Show chat panel only in edit mode (id exists, no prompt, no mode=settings)
+    const isEdit = id && !prompt && initialMode !== 'settings';
+    return isEdit;
+  });
+  
+  // Set initial mode based on storybook pages
+  useEffect(() => {
+    if (storybook !== null) {
+      const mode = getInitialMode();
+      const hasPages = storybook.pages && storybook.pages.length > 0;
+      setRightMode(mode);
+      
+      // If storybook already has pages, mark as generated
+      if (hasPages) {
+        setHasGenerated(true);
+      }
+      
+      // Show chat panel only in edit mode (not during create/prompt mode)
+      setShowChatPanel(isEditMode);
+      
+      console.log('Studio workflow state:', {
+        hasPages,
+        pageCount: storybook.pages?.length || 0,
+        isFirstTimeSetup: !hasPages && !hasGenerated,
+        initialMode: mode,
+        accessType: prompt ? 'prompt_input' : id ? 'existing_story' : 'bookshelf_create'
+      });
+    }
+  }, [storybook, isEditMode]);
   const [settingsTab, setSettingsTab] = useState<'synopsis' | 'characters' | 'style'>('synopsis');
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const synopsisBtnRef = useRef<HTMLButtonElement>(null);
@@ -111,49 +352,339 @@ const StudioPage = () => {
     };
   }, []);
 
-  // Simulate initial generation if there's a prompt
+  // Create new storybook if there's a prompt but no ID
   useEffect(() => {
     if (prompt && !id) {
       setIsGenerating(true);
-      const timer = setTimeout(() => setIsGenerating(false), 3000);
-      return () => clearTimeout(timer);
+      (async () => {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const response = await storybookApi.create({ 
+            title: '', 
+            characterIds: [], 
+            theme: '', 
+            style: '', 
+            pageCount: 0, 
+            prompt: prompt 
+          }, token || undefined);
+          // 생성된 스토리북 ID로 리다이렉트
+          navigate(`/studio/${response.storybook.id}?mode=settings`, { replace: true });
+        } catch (error) {
+          console.error('Failed to create storybook:', error);
+          setIsGenerating(false);
+        }
+      })();
     }
-  }, [prompt, id]);
+  }, [prompt, id, session, navigate]);
 
-  const handleSendMessage = () => {
-    if (!chatMessage.trim()) return;
-    
-    const newMessage = { role: "user" as const, content: chatMessage };
-    setChatHistory([...chatHistory, newMessage]);
+  const buildFinalScript = useCallback((): FinalScript | null => {
+    if (!storybook || !storybook.pages || storybook.pages.length === 0) {
+      return null;
+    }
+
+    const sortedPages = [...storybook.pages] as StorybookPage[];
+    sortedPages.sort((a, b) => (a.page_number ?? 0) - (b.page_number ?? 0));
+
+    const firstPageNumber = sortedPages[0]?.page_number ?? 0;
+    const isZeroBased = firstPageNumber === 0;
+
+    const pageMap = new Map<number, StorybookPage>();
+    sortedPages.forEach((page) => {
+      const pageNumber = page.page_number ?? 0;
+      const normalizedNumber = isZeroBased ? pageNumber : pageNumber - 1;
+      if (normalizedNumber >= 0) {
+        pageMap.set(normalizedNumber, page);
+      }
+    });
+
+    const normalizedCurrentPage =
+      currentPageNumber == null
+        ? null
+        : isZeroBased
+          ? currentPageNumber
+          : currentPageNumber - 1;
+
+    const spreads: FinalScript["spreads"] = [];
+    for (let spreadIndex = 0; spreadIndex < 14; spreadIndex += 1) {
+      const leftIndex = spreadIndex * 2;
+      const rightIndex = leftIndex + 1;
+      const leftPage = pageMap.get(leftIndex);
+      const rightPage = pageMap.get(rightIndex);
+
+      const leftScript =
+        normalizedCurrentPage === leftIndex
+          ? pageText ?? ""
+          : leftPage?.script_text ?? "";
+      const rightScript =
+        normalizedCurrentPage === rightIndex
+          ? pageText ?? ""
+          : rightPage?.script_text ?? "";
+
+      spreads.push({
+        spreadNumber: spreadIndex + 1,
+        script1: leftScript,
+        script2: rightScript,
+      });
+    }
+
+    return {
+      storybookId: storybook.id,
+      userId: storybook.user_id,
+      spreads,
+    };
+  }, [storybook, currentPageNumber, pageText]);
+
+  const applyRewriteResult = useCallback((script: FinalScript) => {
+    setStorybook(prev => {
+      if (!prev || !prev.pages) return prev;
+      const firstPageNumber = prev.pages[0]?.page_number ?? 1;
+      const zeroBased = firstPageNumber === 0;
+
+      const updatedPages = prev.pages.map((page: StorybookPage) => {
+        const pageNumber = page.page_number ?? 0;
+        const normalizedNumber = zeroBased ? pageNumber : pageNumber - 1;
+        if (normalizedNumber < 0) return page;
+        const spreadIndex = Math.floor(normalizedNumber / 2);
+        const spread = script.spreads[spreadIndex];
+        if (!spread) return page;
+        const isLeftPage = normalizedNumber % 2 === 0;
+        const nextText = isLeftPage ? spread.script1 : spread.script2;
+        if (page.script_text === nextText) return page;
+        return { ...page, script_text: nextText };
+      });
+
+      return { ...prev, pages: updatedPages };
+    });
+
+    if (currentPageNumber != null) {
+      const firstPageNumber = storybook?.pages?.[0]?.page_number ?? 1;
+      const zeroBased = firstPageNumber === 0;
+      const normalizedNumber = zeroBased ? currentPageNumber : currentPageNumber - 1;
+      if (normalizedNumber >= 0) {
+        const spreadIndex = Math.floor(normalizedNumber / 2);
+        const spread = script.spreads[spreadIndex];
+        if (spread) {
+          const isLeftPage = normalizedNumber % 2 === 0;
+          const updatedText = isLeftPage ? spread.script1 : spread.script2;
+          setPageText(updatedText);
+        }
+      }
+    }
+  }, [currentPageNumber, setPageText, setStorybook, storybook]);
+
+  const handleSendMessage = async () => {
+    const trimmed = chatMessage.trim();
+    if (!trimmed) return;
+
+    // Check if user is on free plan and block chat API calls
+    if (isFreePlan) {
+      setChatHistory(prev => [
+        ...prev,
+        { role: "user", content: trimmed },
+        {
+          role: "assistant",
+          content: "AI chat editing is a Plus feature! Upgrade to unlock unlimited story improvements and AI-powered editing capabilities. 🚀"
+        }
+      ]);
+      setChatMessage("");
+      toast({
+        title: "Plus Feature Required",
+        description: "AI chat editing is only available with a Plus subscription.",
+        variant: "default",
+      });
+      openPlanDialog();
+      return;
+    }
+
+    setChatHistory(prev => [...prev, { role: "user", content: trimmed }]);
     setChatMessage("");
-    
     setIsGenerating(true);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = { 
-        role: "assistant" as const, 
-        content: "I've made those changes to your story! The characters now have more vibrant expressions and the scene feels more dynamic. What would you like to adjust next?"
-      };
-      setChatHistory(prev => [...prev, aiResponse]);
+    setThinkingType("initial"); // Start with initial thinking state
+
+    const finalScript = buildFinalScript();
+    if (!finalScript) {
+      toast({
+        title: "Content Preparation Required",
+        description: "All 14 spreads must be prepared for AI to help.",
+        variant: "destructive",
+      });
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: "Once the entire story is complete, I can help you more specifically. Please fill in all pages first!" },
+      ]);
       setIsGenerating(false);
-    }, 2000);
+      return;
+    }
+
+    try {
+      const token = await session?.getToken({ template: 'storybook4me' });
+      const response = await postStudioChat(
+        {
+          script: finalScript,
+          message: trimmed,
+        },
+        token || undefined
+      );
+
+      // Update thinking type based on response action from backend
+      setThinkingType(response.action);
+
+      // Small delay to show the classified thinking message
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (response.script) {
+        applyRewriteResult(response.script);
+        toast({
+          title: "Story has been updated",
+          description: response.assistantMessage,
+        });
+      } else {
+        toast({
+          title: "AI Response",
+          description: response.assistantMessage,
+        });
+      }
+
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: response.assistantMessage },
+      ]);
+    } catch (error: any) {
+      const message = error?.message || "Failed to process the chat request.";
+      toast({
+        title: "Request Processing Failed",
+        description: message,
+        variant: "destructive",
+      });
+      setChatHistory(prev => [
+        ...prev,
+        { role: "assistant", content: `Unable to resolve the issue: ${message}` },
+      ]);
+    } finally {
+      setIsGenerating(false);
+      setThinkingType("initial"); // Reset to initial
+    }
   };
 
-  const handleTextChange = (newText: string) => {
-    const updatedPages = [...storyData.pages];
-    updatedPages[currentPage] = { ...updatedPages[currentPage], text: newText };
-    setStoryData({ ...storyData, pages: updatedPages });
-  };
 
   const handleFinishStory = () => {
-    // Generate new ID for completed story
-    const newId = `completed-${Date.now()}`;
-    navigate(`/book/${newId}`);
+    // Navigate to the actual storybook if it exists; otherwise block
+    const targetId = storybook?.id || id;
+    if (!targetId) {
+      toast({
+        title: "Save failed",
+        description: "Please generate a storybook first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate(`/book/${targetId}`);
   };
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleAddPage = async () => {
+    const newPage = await addPage({
+      script_text: "New page content...",
+      image_prompt: "A beautiful scene",
+      image_style: "watercolor",
+      character_ids: [],
+      background_description: "A peaceful setting"
+    });
+    
+    if (newPage) {
+      // Refresh storybook data to show new page
+      if (id) {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const res = await storybookApi.get(id, token || undefined);
+          setStorybook(res.storybook);
+          // Navigate to the spread containing the new page
+          const spreadIdx = Math.floor((res.storybook?.pages?.length ? res.storybook.pages.length - 1 : 0) / 2);
+          setCurrentPage(spreadIdx);
+          setActiveSide('left');
+        } catch (err) {
+          console.error('Failed to refresh storybook:', err);
+        }
+      }
+    }
+  };
+
+  const handleDeletePage = async (pageNumber: number) => {
+    const success = await deletePage(pageNumber);
+    
+    if (success) {
+      // Refresh storybook data to reflect changes
+      if (id) {
+        try {
+          const token = await session?.getToken({ template: 'storybook4me' });
+          const res = await storybookApi.get(id, token || undefined);
+          setStorybook(res.storybook);
+          // Adjust current spread if needed
+          const spreadCount = Math.max(1, Math.ceil((res.storybook?.pages?.length || 1) / 2));
+          if (currentPage >= spreadCount) {
+            setCurrentPage(Math.max(0, spreadCount - 1));
+          }
+          setActiveSide('left');
+        } catch (err) {
+          console.error('Failed to refresh storybook:', err);
+        }
+      }
+    }
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleGenerate = async () => {
+    setHasGenerated(true);
+    setIsGenerating(true);
+    setShowChatPanel(true);
+    setRightMode('preview');
+    setChatHistory([
+      { role: "assistant", content: "Your story is being created! Please wait..." }
+    ]);
+
+    try {
+      const token = await session?.getToken({ template: 'storybook4me' });
+      const response = await storybookApi.generate({
+        title: liveTitle || '',
+        prompt: mainConcept,
+        characterIds: selectedCharacters,
+        style: STYLES[artStyleIndex]?.title,
+        theme: '',
+        pageCount: 28,
+      }, token || undefined);
+
+      const generated = response.storybook;
+      setStorybook(generated);
+      setChatHistory([
+        { role: "assistant", content: "Your story has been created! I'm here to help you refine it. What would you like to change?" }
+      ]);
+      setIsGenerating(false);
+
+      // Navigate to the generated storybook if we weren't already on it
+      if (!id || id !== generated.id) {
+        navigate(`/studio/${generated.id}?mode=preview`, { replace: true });
+      }
+    } catch (error: any) {
+      const message = error?.message || 'Failed to generate storybook';
+      console.error('Generate failed:', error);
+      setChatHistory([
+        { role: "assistant", content: "Failed to create your story. Please adjust settings and try again." }
+      ]);
+      toast({
+        title: "Generation failed",
+        description: message,
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+      setHasGenerated(false);
+    }
   };
 
   if (isGenerating && !id) {
@@ -186,9 +717,9 @@ const StudioPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50 overflow-hidden">
       {/* Top Bar */}
-      <div className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+      <div className="border-b bg-white/80 backdrop-blur-sm flex-shrink-0 z-40">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -196,359 +727,434 @@ const StudioPage = () => {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
-              <div>
-                <h1 className="text-lg font-semibold">{storyData.title}</h1>
-                <p className="text-xs text-muted-foreground">Creation Studio</p>
+              <div className="flex items-center gap-2">
+                <input
+                  value={liveTitle ?? ''}
+                  onChange={(e) => setLiveTitle(e.target.value)}
+                  placeholder="Untitled storybook"
+                  className="text-lg font-semibold bg-white/60 border border-gray-300 rounded px-2 py-1 focus:border-purple-400 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-colors disabled:opacity-60"
+                  aria-label="Storybook title"
+                  disabled={isTitleFetching}
+                />
+                <span
+                  className={
+                    `text-xs min-w-[60px] text-right ` +
+                    (titleStatus === 'saved'
+                      ? 'text-purple-700'
+                      : titleStatus === 'error'
+                      ? 'text-red-600'
+                      : titleStatus === 'saving'
+                      ? 'text-purple-400'
+                      : 'text-muted-foreground')
+                  }
+                >
+                  {isTitleFetching && 'Loading title...'}
+                  {!isTitleFetching && titleStatus === 'saving' && 'Saving...'}
+                  {titleStatus === 'saved' && 'Saved'}
+                  {titleStatus === 'error' && 'Save failed'}
+                  {titleStatus === 'idle' && 'Saved'}
+                </span>
               </div>
             </div>
             
             <Button onClick={handleFinishStory} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Create Storybook
+              Save Storybook
             </Button>
           </div>
         </div>
       </div>
 
-      <main className="flex-1 flex overflow-hidden min-h-0">
-        {/* Left Panel - Editor */}
-        <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col min-h-0">
-          <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
-            <h3 className="text-sm font-semibold">AI Storyteller</h3>
-          </div>
+      <main className="flex-1 flex overflow-hidden h-0">
+        {/* Left Panel - Editor (Chat) - Conditional Rendering */}
+        {showChatPanel && (
+          <div className="w-[30%] border-r bg-white/50 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
+              <h3 className="text-sm font-semibold">AI Storyteller</h3>
+              {isFreePlan && (
+                <Badge variant="secondary" className="text-xs">Plus Feature</Badge>
+              )}
+            </div>
 
-          <div className="flex-1 overflow-hidden min-h-0">
-            <div className="h-full flex flex-col">
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {chatHistory.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-3 ${
-                          message.role === 'user'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-white border'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {isGenerating && (
-                    <div className="flex justify-start">
-                      <div className="bg-white border rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">AI is thinking...</span>
+            <div className="flex-1 overflow-hidden h-0">
+              <div className="h-full flex flex-col">
+                <ScrollArea className="flex-1 p-4 h-0">
+                  <div className="space-y-4">
+                    {isStorybookLoading ? (
+                      // Chat panel loading skeleton
+                      <>
+                        <div className="flex justify-start">
+                          <div className="max-w-[80%] rounded-lg p-3 bg-white border animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-48"></div>
+                          </div>
                         </div>
+                        <div className="flex justify-start">
+                          <div className="max-w-[80%] rounded-lg p-3 bg-white border animate-pulse">
+                            <div className="space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-64"></div>
+                              <div className="h-4 bg-gray-200 rounded w-56"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {chatHistory.map((message, index) => (
+                          <div
+                            key={index}
+                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg p-3 ${
+                                message.role === 'user'
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-white border'
+                              }`}
+                            >
+                              <p className="text-sm">{message.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {/* Free plan upgrade prompt */}
+                        {isFreePlan && chatHistory.length <= 1 && (
+                          <div className="flex justify-start">
+                            <Card className="max-w-[90%] border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-1">🚀 Unlock AI Chat Editing</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      Upgrade to Plus to use AI-powered story editing and get unlimited improvements!
+                                    </p>
+                                  </div>
+                                  <ul className="text-xs space-y-1 text-muted-foreground ml-2">
+                                    <li>✓ Unlimited AI chat editing</li>
+                                    <li>✓ Full access to premium AI models</li>
+                                    <li>✓ Real-time story improvements</li>
+                                  </ul>
+                                  <Button 
+                                    onClick={openPlanDialog} 
+                                    size="sm" 
+                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                                  >
+                                    Upgrade to Plus
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {isGenerating && <ThinkingMessage type={thinkingType} />}
+                  </div>
+                </ScrollArea>
+
+                <div className="p-4 border-t flex-shrink-0">
+                  {isFreePlan ? (
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Plus feature - Upgrade to unlock..."
+                          disabled
+                          className="opacity-60"
+                        />
+                        <Button onClick={openPlanDialog} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                          <Plus className="w-4 h-4 mr-1" />
+                          Upgrade
+                        </Button>
+                      </div>
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <p className="text-xs font-medium text-purple-900 mb-1">🔒 AI Chat Editing Locked</p>
+                        <p className="text-xs text-purple-700">
+                          This feature requires a Plus subscription. Upgrade now to unlock unlimited AI-powered story improvements!
+                        </p>
                       </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Tell me what you'd like to change..."
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter') return;
+                            const isComposing =
+                              typeof e.nativeEvent === 'object' &&
+                              'isComposing' in e.nativeEvent &&
+                              (e.nativeEvent as KeyboardEvent).isComposing;
+                            if (isComposing) {
+                              return;
+                            }
+                            e.preventDefault();
+                            void handleSendMessage();
+                          }}
+                        />
+                        <Button onClick={() => { void handleSendMessage(); }} disabled={!chatMessage.trim() || isGenerating}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Try: "Make the rabbit playful" or "Change to watercolor style"
+                      </p>
+                    </>
                   )}
                 </div>
-              </ScrollArea>
-
-              <div className="p-4 border-t flex-shrink-0">
-                <div className="flex gap-2">
-                  <Input
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Tell me what you'd like to change..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage} disabled={!chatMessage.trim() || isGenerating}>
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Try: "Make the character happier" or "Add a rainbow in the background"
-                </p>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Panel - Live Preview */}
-        <div className="w-[70%] bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col min-h-0">
+        {/* Right Panel - Live Preview/Settings */}
+        <div className={`${showChatPanel ? 'w-[70%]' : 'w-[70%] mx-auto'} bg-gradient-to-br from-purple-100 to-pink-100 flex flex-col h-full overflow-hidden`}>
           <div className="p-4 border-b bg-white/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
             <div>
-              <h3 className="text-lg font-semibold">{rightMode === 'preview' ? 'Live Preview' : 'Story Settings'}</h3>
-              <p className="text-sm text-muted-foreground">{rightMode === 'preview' ? 'See your changes in real-time' : 'Review and edit global story settings'}</p>
+              <h3 className="text-lg font-semibold">
+                {rightMode === 'preview' ? 'Live Preview' : 'Story Settings'}
+                {rightMode === 'settings' && !isFirstTimeSetup && !isStorybookLoading && (
+                  <span className="text-sm text-muted-foreground ml-2">(View Only)</span>
+                )}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {rightMode === 'preview' 
+                  ? 'See your changes in real-time' 
+                  : isStorybookLoading 
+                    ? 'Loading story settings...' 
+                    : isFirstTimeSetup 
+                      ? 'Configure your story settings to generate' 
+                      : 'Review global story settings'
+                }
+              </p>
             </div>
-            <div className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden">
+            <div 
+              className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+              onClick={() => setRightMode(rightMode === 'preview' ? 'settings' : 'preview')}
+              role="switch"
+              aria-checked={rightMode === 'settings'}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setRightMode(rightMode === 'preview' ? 'settings' : 'preview');
+                }
+              }}
+            >
               <span
                 className="absolute inset-y-1 left-1 rounded-full bg-purple-500/15 border border-purple-400/30 transition-transform duration-300 ease-out"
                 style={{ width: 'calc(50% - 0.25rem)', transform: `translateX(${rightMode === 'preview' ? '0%' : '100%'})` }}
                 aria-hidden
               />
-              <button
-                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
+              <div
+                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 ${
                   rightMode === 'preview'
                     ? 'text-purple-700'
-                    : 'hover:bg-gray-100 active:scale-[0.98]'
+                    : 'text-gray-600'
                 }`}
-                aria-pressed={rightMode === 'preview'}
-                onClick={() => setRightMode('preview')}
               >
                 Preview
-              </button>
-              <button
-                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
+              </div>
+              <div
+                className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 ${
                   rightMode === 'settings'
                     ? 'text-purple-700'
-                    : 'hover:bg-gray-100 active:scale-[0.98]'
+                    : 'text-gray-600'
                 }`}
-                aria-pressed={rightMode === 'settings'}
-                onClick={() => setRightMode('settings')}
               >
                 Settings
-              </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 p-4 flex flex-col min-h-0">
+          <div className="flex-1 p-4 flex flex-col h-0 overflow-hidden">
             {rightMode === 'preview' ? (
-              <Card className="glass-effect flex-1 overflow-hidden min-h-0">
-                <CardContent className="p-0 h-full flex flex-col min-h-0">
-                  {/* Preview Book Page */}
-                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 min-h-0">
-                    {/* Image Side */}
-                    <div className="relative bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center p-6 min-h-0">
-                      <div className="aspect-square w-full max-w-xs">
-                        <img 
-                          src={'/placeholder.svg'} 
-                          alt={`Preview`}
-                          className="w-full h-full object-cover rounded-lg shadow-lg"
-                        />
-                      </div>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-full border shadow">
-                        This is a preview image. Actual images will be custom-generated.
-                      </div>
-                    </div>
-
-                    {/* Text Side */}
-                    <div className="p-6 flex flex-col justify-center bg-white/50 min-h-0">
-                      <div className="text-center lg:text-left">
-                        <p className="text-base leading-relaxed text-gray-700 mb-4">
-                          {storyData.pages[currentPage]?.text}
-                        </p>
-                        
-                        <Separator className="my-4" />
-                        
-                        <div className="text-sm text-muted-foreground">
-                          Page {currentPage + 1} of {storyData.pages.length}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <Card className="glass-effect flex-1 overflow-hidden h-full">
+                <CardContent className="p-0 h-full flex flex-col overflow-hidden">
+                  <StorybookPreview
+                    storybook={storybook}
+                    currentPage={currentPage}
+                    activeSide={activeSide}
+                    onSideChange={setActiveSide}
+                    isLoading={isStorybookLoading}
+                    error={storybookError}
+                    pageText={pageText}
+                    setPageText={setPageText}
+                    isPageFetching={isPageFetching}
+                    onDeleteClick={handleDeleteClick}
+                    isDeleting={isDeleting}
+                    pageStatus={pageStatus}
+                    pageManagementError={pageManagementError}
+                    clearError={clearError}
+                    isGenerating={isGenerating}
+                  />
 
                   {/* Navigation */}
                   <div className="p-4 bg-white/80 backdrop-blur-sm border-t flex justify-between items-center flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                      disabled={currentPage === 0}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      Previous
-                    </Button>
+                        <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                        disabled={currentPage === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const spreadCount = Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2));
+                              setCurrentPage(Math.min(spreadCount - 1, currentPage + 1));
+                              setActiveSide('left');
+                        }}
+                        disabled={
+                          currentPage >= Math.max(1, Math.ceil((storybook?.pages?.length || 1) / 2)) - 1
+                        }
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
                     
-                    <div className="flex gap-1">
-                      {storyData.pages.map((_, index) => (
-                        <div
-                          key={index}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            index === currentPage ? 'bg-purple-500' : 'bg-gray-300'
-                          }`}
-                        />
-                      ))}
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span>
+                        Page {currentPage * 2 + 1} - {Math.min((storybook?.pages?.length || 0), currentPage * 2 + 2)} of {storybook?.pages?.length || 0}
+                        {` (editing ${activeSide === 'left' ? 'left' : 'right'} page)`}
+                      </span>
                     </div>
                     
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(Math.min(storyData.pages.length - 1, currentPage + 1))}
-                      disabled={currentPage === storyData.pages.length - 1}
+                      onClick={handleAddPage}
+                      disabled={isAdding}
+                      className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700 hover:text-purple-800"
                     >
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                      {isAdding ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Plus className="w-4 h-4 mr-1" />
+                      )}
+                      Add Page
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card className="glass-effect flex-1 overflow-hidden min-h-0">
-                <CardContent className="p-0 h-full flex flex-col min-h-0">
-                  {/* Floating settings menu */}
-                  <div className="sticky top-0 z-10 px-4 pt-4">
-                    <div ref={settingsMenuRef} className="relative inline-flex rounded-full bg-white border shadow-sm p-1 overflow-hidden">
-                      <span
-                        className="absolute inset-y-1 rounded-full bg-purple-500/15 border border-purple-400/30 transition-all duration-300 ease-out"
-                        style={{ left: settingsHighlight.left + 4, width: Math.max(0, settingsHighlight.width - 8) }}
-                        aria-hidden
-                      />
-                      <button
-                        ref={synopsisBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'synopsis'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'synopsis'}
-                        onClick={() => setSettingsTab('synopsis')}
-                      >
-                        Synopsis
-                      </button>
-                      <button
-                        ref={charactersBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'characters'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'characters'}
-                        onClick={() => setSettingsTab('characters')}
-                      >
-                        Characters
-                      </button>
-                      <button
-                        ref={styleBtnRef}
-                        className={`relative z-10 px-3 py-1.5 rounded-full text-sm transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
-                          settingsTab === 'style'
-                            ? 'text-purple-700'
-                            : 'hover:bg-gray-100 active:scale-[0.98]'
-                        }`}
-                        aria-pressed={settingsTab === 'style'}
-                        onClick={() => setSettingsTab('style')}
-                      >
-                        Style
-                      </button>
+              <Card className="glass-effect flex-1 overflow-hidden h-full">
+                <CardContent className="p-0 h-full flex flex-col overflow-hidden">
+                  {isStorybookLoading || isGenerating ? (
+                    // Loading skeleton
+                    <div className="p-6 space-y-8 animate-pulse">
+                      {/* Main Concept Skeleton */}
+                      <div>
+                        <div className="h-5 w-32 bg-gray-200 rounded mb-3"></div>
+                        <div className="h-24 w-full bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="h-px bg-gray-200"></div>
+                      
+                      {/* Characters Skeleton */}
+                      <div>
+                        <div className="h-5 w-24 bg-gray-200 rounded mb-3"></div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          <div className="h-20 bg-gray-200 rounded"></div>
+                          <div className="h-20 bg-gray-200 rounded"></div>
+                        </div>
+                      </div>
+                      <div className="h-px bg-gray-200"></div>
+                      
+                      {/* Art Style Skeleton */}
+                      <div>
+                        <div className="h-5 w-20 bg-gray-200 rounded mb-3"></div>
+                        <div className="h-48 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex-1 overflow-auto p-6 space-y-6">
-                    {settingsTab === 'synopsis' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Main Concept</h4>
-                          <Textarea
-                            defaultValue={prompt || "A brave young explorer discovers magical worlds beyond the stars"}
-                            className="min-h-[80px] resize-none w-full max-w-full"
-                            placeholder="Enter your main story concept..."
+                  ) : (
+                    <>
+                      <ScrollArea className="flex-1 h-0">
+                        <div className="p-6 space-y-8">
+                          {/* Unified Settings: 3 sections */}
+                          <MainConceptSection 
+                            prompt={prompt}
+                            onChange={setMainConcept}
+                            isHighlighted={highlightedSection === 'concept'}
+                            readOnly={!isFirstTimeSetup}
+                          />
+                          <Separator />
+                          <SelectedCharactersSection
+                            myCharacters={myCharacters}
+                            presetCharacters={presetCharacters}
+                            selectedCharacters={selectedCharacters}
+                            onOpenModal={() => setShowCharacterModal(true)}
+                            isHighlighted={highlightedSection === 'characters'}
+                            readOnly={!isFirstTimeSetup}
+                          />
+                          <Separator />
+                          <ArtStyleCarousel 
+                            isHighlighted={highlightedSection === 'characters'}
+                            readOnly={!isFirstTimeSetup}
+                            selectedIndex={artStyleIndex}
+                            onIndexChange={setArtStyleIndex}
                           />
                         </div>
-                        <Separator />
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Story Synopsis</h4>
-                          <Textarea
-                            defaultValue="Nova, a young space explorer, embarks on an incredible journey through the galaxy with her robot companion Zyx. Together, they discover new worlds, face exciting challenges, and learn valuable lessons about friendship and courage."
-                            className="min-h-[100px] resize-none w-full max-w-full"
-                            placeholder="Write an overall synopsis of your story..."
+                      </ScrollArea>
+                      
+                      {isFirstTimeSetup && !isGenerating && (
+                        <div className="p-4 border-t bg-white/80 backdrop-blur-sm flex-shrink-0">
+                          <GenerateButton 
+                            variant="settings"
+                            onClick={handleGenerate}
+                            disabled={!mainConcept.trim()}
                           />
                         </div>
-                      </>
-                    )}
-
-                    {settingsTab === 'characters' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Characters</h4>
-                          <div className="flex flex-wrap gap-3">
-                            <div className="relative bg-white rounded-lg p-3 border shadow-sm min-w-[140px]">
-                              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                                <img src="/placeholder.svg" alt="Nova" className="w-10 h-10 rounded-full" />
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm font-medium">Nova</div>
-                                <div className="text-xs text-muted-foreground">Main Character</div>
-                              </div>
-                              <button className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 flex items-center justify-center">×</button>
-                            </div>
-                            <div className="relative bg-white rounded-lg p-3 border shadow-sm min-w-[140px]">
-                              <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center">
-                                <img src="/placeholder.svg" alt="Zyx" className="w-10 h-10 rounded-full" />
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm font-medium">Zyx</div>
-                                <div className="text-xs text-muted-foreground">Robot Companion</div>
-                              </div>
-                              <button className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 flex items-center justify-center">×</button>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 mt-3">
-                            <Button variant="outline" size="sm" className="flex-1">👥 Select from My Family</Button>
-                            <Button variant="outline" size="sm">+ Create</Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {settingsTab === 'style' && (
-                      <>
-                        <div>
-                          <h4 className="text-base font-semibold mb-2">Art Style</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button className="relative p-3 border-2 border-purple-500 bg-purple-50 rounded-lg text-left overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-purple-200 to-pink-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Watercolor Fantasy" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Watercolor Fantasy</div>
-                              <div className="text-xs text-muted-foreground">Soft, dreamy illustrations</div>
-                            </div>
-                          </div>
-                          <div className="absolute top-2 right-2 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-blue-200 to-green-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Digital Cartoon" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Digital Cartoon</div>
-                              <div className="text-xs text-muted-foreground">Bright, colorful style</div>
-                            </div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Realistic Art" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Realistic Art</div>
-                              <div className="text-xs text-muted-foreground">Detailed, lifelike images</div>
-                            </div>
-                          </div>
-                        </button>
-                        <button className="relative p-3 border rounded-lg text-left hover:border-gray-400 overflow-hidden group">
-                          <div className="flex items-center gap-4">
-                            <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded overflow-hidden w-1/2">
-                              <img src="/placeholder.svg" alt="Minimalist" className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">Minimalist</div>
-                              <div className="text-xs text-muted-foreground">Simple, clean designs</div>
-                            </div>
-                          </div>
-                        </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
           </div>
         </div>
       </main>
+
+      {/* Delete Page Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this page?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The page will be permanently removed from your storybook.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDeletePage((storybook?.pages?.[currentPage * 2]?.page_number ?? (currentPage * 2 + 1)))}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Page
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Character Selection Modal */}
+      <CharacterSelectionModal
+        open={showCharacterModal}
+        onOpenChange={setShowCharacterModal}
+        myCharacters={myCharacters}
+        presetCharacters={presetCharacters}
+        selectedCharacters={selectedCharacters}
+        isLoading={isCharactersLoading}
+        error={charactersError}
+        onToggleCharacter={toggleCharacter}
+        onClearSelection={clearSelection}
+        onSelectAll={selectAll}
+        onLoadCharacters={loadCharacters}
+      />
     </div>
   );
 };

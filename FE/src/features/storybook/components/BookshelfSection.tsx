@@ -49,7 +49,10 @@ export function BookshelfSection() {
                 <Edit3 className="w-4 h-4" />
                 Edit
               </Button>
-              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={async () => { await createStorybook(''); navigate('/studio?mode=settings'); }}>
+              <Button variant="ghost" size="sm" className="hover:bg-purple-100" onClick={async () => { 
+                const response = await createStorybook(''); 
+                navigate(`/studio/${response.storybook.id}?mode=settings`); 
+              }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create New
               </Button>
@@ -96,22 +99,36 @@ export function BookshelfSection() {
                     </div>
                   )}
                 </div>
-                {/* Edit controls overlay - Delete only */}
+                {/* Edit controls overlay - only show when in edit mode */}
                 {isEditMode && (
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPendingDeleteId(book.id);
-                        setConfirmOpen(true);
-                      }}
-                      className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg px-4 py-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete Story
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/studio/${book.id}`);
+                        }}
+                        className="flex items-center gap-2 bg-transparent border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white shadow-lg px-4 py-2 transition-all duration-200"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Edit Story
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDeleteId(book.id);
+                          setConfirmOpen(true);
+                        }}
+                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white shadow-lg px-4 py-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete Story
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

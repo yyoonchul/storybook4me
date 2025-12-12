@@ -280,13 +280,179 @@ interface DeleteResponse {
 * **사용 페이지:** `StudioPage`, `MainPage` (스토리 생성 시작)
 * **구현 상태:** ❌ 미구현
 
+#### **📋 페이지 관리 API 상세**
+
+##### **1) 페이지 추가**
+- **`POST /api/studio/storybooks/{storybookId}/pages`**
+- **설명:** 동화책의 맨 끝에 새로운 페이지를 추가합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  ```typescript
+  interface AddPageRequest {
+    content: {
+      scriptText?: string;
+      imagePrompt?: string;
+      imageStyle?: string;
+      characterIds?: string[];
+      backgroundDescription?: string;
+    };
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface AddPageResponse {
+    page: {
+      id: string;
+      pageNumber: number;
+      scriptText?: string;
+      imageUrl?: string;
+      audioUrl?: string;
+      imagePrompt?: string;
+      imageStyle?: string;
+      characterIds?: string[];
+      backgroundDescription?: string;
+      createdAt: string;
+    };
+  }
+  ```
+
+##### **2) 페이지 삭제**
+- **`DELETE /api/studio/storybooks/{storybookId}/pages/{pageNumber}`**
+- **설명:** 특정 페이지를 삭제합니다. 삭제 후 뒤의 페이지들의 번호가 자동으로 재정렬됩니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Response:**
+  ```typescript
+  interface DeletePageResponse {
+    message: string;
+    deletedPageNumber: number;
+  }
+  ```
+
+
 | **Endpoint** | **Method** | **설명** | **Request Body** | **Response** |
 | :--- | :--- | :--- | :--- | :--- |
-|  |  |  |  |  |
+| `/api/studio/storybooks/{storybookId}/title` | `GET` | 특정 동화책의 제목을 불러옵니다. | `Authorization: Bearer {token}` | `{ id: string, title: string }` |
+| `/api/studio/storybooks/{storybookId}/title` | `PUT` | 특정 동화책의 제목을 저장(업데이트)합니다. | `{ title: string }` | `{ id: string, title: string }` |
+| `/api/studio/storybooks/{storybookId}/pages` | `POST` | 동화책의 맨 끝에 새로운 페이지를 추가합니다. | `{ content: { scriptText?, imagePrompt?, imageStyle?, characterIds?, backgroundDescription? } }` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, createdAt } }` |
+| `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `GET` | 특정 페이지의 콘텐츠를 불러옵니다. | `Authorization: Bearer {token}` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, createdAt } }` |
+| `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `PUT` | 특정 페이지의 콘텐츠를 저장(업데이트)합니다. | `{ scriptText?, imagePrompt?, imageStyle?, characterIds?, backgroundDescription? }` | `{ page: { id, pageNumber, scriptText, imageUrl, audioUrl, imagePrompt, imageStyle, characterIds, backgroundDescription, updatedAt } }` |
+| `/api/studio/storybooks/{storybookId}/pages/{pageNumber}` | `DELETE` | 특정 페이지를 삭제합니다. | `Authorization: Bearer {token}` | `{ message: "Page deleted successfully", deletedPageNumber: number }` |
 | `/api/storybooks/{storybookId}` | `GET` | 특정 동화책의 현재 상태와 데이터를 불러옵니다. 프론트엔드에서는 이 API를 주기적으로 호출(Polling)하여 생성 진행 상태(예: `script_generated`, `images_generating`, `complete`)를 확인하고 화면을 업데이트합니다. | `Authorization: Bearer {token}` | `{ storybook: { id, title, status, pages: [{ id, text, imageUrl, characters, background }], progress: 75 } }` |
 | `/api/storybooks/{storybookId}` | `PUT` | (메타 업데이트) 제목/카테고리/태그 등 편집 내용을 저장합니다. | `{ title?, category?, tags? }` | `{ storybook: { id, title, category, tags } }` |
 | `/api/storybooks/{storybookId}/pages/{pageNumber}/regenerate-image` | `POST` | 특정 페이지의 이미지를 다시 생성하도록 요청합니다. | `{ prompt?, style? }` | `{ imageUrl: "https://...", status: "generating" }` |
-| `/api/chat/storybook/{storybookId}` | `POST` | AI와 스토리 개선에 대한 대화를 시작합니다. | `{ message, context?: { pageNumber?, currentText? } }` | `{ response: "AI response text", suggestions?: [{ type, content }] }` |
+| `/api/studio/storybooks/rewrite` | `POST` | 전체 14 스프레드 스크립트를 리라이트합니다. (저장은 자동 저장에서 처리) | `{ script: FinalScriptSchema, editRequest: string }` | `{ script: FinalScriptSchema }` |
+| `/api/studio/storybooks/chat` | `POST` | 메시지를 분류해 질문에는 답변을, 수정 요청에는 리라이트 결과와 요약을 반환합니다. | `{ script: FinalScriptSchema, message: string }` | `{ assistantMessage: string, script?: FinalScriptSchema }` |
+
+- **FinalScriptSchema** 는 14개의 `spreadNumber`, `script1`, `script2`를 포함하며 `storybookId`, `userId`를 담아야 합니다. `rewrite` 엔드포인트는 요청자의 Clerk `sub`와 `script.userId`가 일치해야 하며, 성공 시 새 스크립트를 반환하고 DB 저장은 수행하지 않습니다.
+
+##### **3) 스크립트 전체 리라이트**
+- **`POST /api/studio/storybooks/rewrite`**
+- **설명:** 현재의 전체 스크립트(14 스프레드)와 수정 지침을 전달하면, 서버가 LLM으로 전체 스크립트를 리라이트하여 반환합니다. 서버는 결과를 저장하지 않으며, 저장은 스튜디오 자동 저장 로직에서 처리합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  > 프론트엔드에서는 camelCase를 사용합니다. 서버는 snake_case로 처리하므로 매핑을 적용하세요.
+  ```typescript
+  // 개별 스프레드
+  interface SpreadScript {
+    spreadNumber: number; // 1..14
+    script1: string;      // 좌측 페이지
+    script2: string;      // 우측 페이지 (페이지 턴 고려)
+  }
+
+  // 전체 스크립트 스키마
+  interface FinalScriptSchema {
+    storybookId: string;       // 동화책 ID
+    userId: string;            // 사용자 ID (Clerk sub)
+    spreads: SpreadScript[];   // 길이 14
+  }
+
+  // 리퀘스트
+  interface RewriteScriptRequest {
+    script: FinalScriptSchema; // 현재 스크립트
+    editRequest: string;       // 리라이트 지침(설명)
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface RewriteScriptResponse {
+    script: FinalScriptSchema; // 리라이트된 스크립트 (14 스프레드)
+  }
+  ```
+- **권한/검증:**
+  - `script.userId`와 인증된 사용자(`Authorization`의 Clerk sub)가 일치해야 합니다. 불일치 시 `403 Forbidden`.
+  - 필수 필드 누락/유효성 실패 시 `400 Bad Request`.
+  - 내부 오류 시 `500 Internal Server Error`.
+- **예시 요청:**
+  ```json
+  {
+    "script": {
+      "storybookId": "c8f1-...",
+      "userId": "user_abc123",
+      "spreads": [
+        { "spreadNumber": 1, "script1": "Once upon a time...", "script2": "He looked outside..." },
+        { "spreadNumber": 2, "script1": "The sun was bright...", "script2": "He smiled and..." }
+        // ... spreads 3..14
+      ]
+    },
+    "editRequest": "더 밝고 따뜻한 톤으로 전체를 매끄럽게 다듬어줘"
+  }
+  ```
+- **예시 응답:**
+  ```json
+  {
+    "script": {
+      "storybookId": "c8f1-...",
+      "userId": "user_abc123",
+      "spreads": [
+        { "spreadNumber": 1, "script1": "In a cozy morning...", "script2": "He peeked outside..." }
+        // ... spreads 2..14
+      ]
+    }
+  }
+  ```
+
+##### **4) 스튜디오 채팅 응답**
+- **`POST /api/studio/storybooks/chat`**
+- **설명:** 채팅 메시지를 받아 LLM이 `question`/`edit`로 분류합니다. 질문이면 스토리 컨텍스트를 이용해 답변만 반환하고, 수정이면 전체 스크립트를 재작성하며 변경 사항 요약(`assistantMessage`)을 함께 제공합니다.
+- **Headers:** `Authorization: Bearer {token}`
+- **Request Body:**
+  ```typescript
+  interface ChatRequest {
+    script: FinalScriptSchema; // 현재 14 스프레드 스크립트
+    message: string;           // 사용자의 질문 또는 수정 요청
+  }
+  ```
+- **Response:**
+  ```typescript
+  interface ChatResponse {
+    assistantMessage: string;      // 질문에 대한 답변 또는 변경 내용 요약
+    script?: FinalScriptSchema;    // edit인 경우에만 포함되는 최신 스크립트
+  }
+  ```
+- **분류 규칙 요약:**
+  - “바꿔/수정/재작성/톤 변경/추가/삭제/길게/짧게” 등 명령형 수정 요청이 있으면 `edit`
+  - 단순 요약/질문/설명 요청은 `question`
+  - 혼재 시 `edit` 우선
+- **예시 요청 (edit):**
+  ```json
+  {
+    "script": { "...": "..." },
+    "message": "스토리를 좀 더 빠른テン포로 다듬어줘"
+  }
+  ```
+- **예시 응답 (edit):**
+  ```json
+  {
+    "assistantMessage": "스토리 전개를 빠르게 조정하고 대사를 간결하게 정리했습니다.",
+    "script": { "...": "..." }
+  }
+  ```
+- **예시 응답 (question):**
+  ```json
+  {
+    "assistantMessage": "아이들이 겪는 갈등은 꿀이 떨어진 뒤 새로운 친구들과 협력해 해결하는 과정입니다."
+  }
+  ```
 
 ---
 

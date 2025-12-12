@@ -20,7 +20,7 @@ export function useExploreStories(initialParams: ExploreStoriesRequest = {}) {
       const currentParams = newParams || params;
       const response = await exploreApi.getStories(currentParams, token || undefined);
       
-      setStories(response.stories);
+      setStories(response.stories || []);
       setPagination(response.pagination);
       
       if (newParams) {
@@ -56,7 +56,7 @@ export function useExploreStories(initialParams: ExploreStoriesRequest = {}) {
         token || undefined
       );
       
-      setStories(prev => [...prev, ...response.stories]);
+      setStories(prev => [...prev, ...(response.stories || [])]);
       setPagination(response.pagination);
     } catch (e) {
       console.error('Failed to load more stories:', e);

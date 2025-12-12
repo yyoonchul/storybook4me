@@ -97,7 +97,7 @@ class ExploreService:
                     cover_image_url=story.get("cover_image_url"),
                     author=author,
                     category=story.get("category"),
-                    tags=story.get("tags", []),
+                    tags=story.get("tags") if story.get("tags") is not None else None,
                     like_count=story.get("like_count", 0),
                     view_count=story.get("view_count", 0),
                     page_count=story.get("page_count", 0),

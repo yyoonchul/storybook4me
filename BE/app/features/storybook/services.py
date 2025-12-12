@@ -75,6 +75,9 @@ class StorybookService:
                     "style": req.style,
                     "pageCount": req.page_count,
                     "prompt": req.prompt,
+                    "character_ids": req.character_ids or [],
+                    "arc": {},
+                    "bible": {},
                 },
             }
 

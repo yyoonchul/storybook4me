@@ -62,9 +62,20 @@ export const apiClient = {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const resolvedToken = token ?? (authTokenProvider ? await authTokenProvider() : undefined);
     if (resolvedToken) headers['Authorization'] = `Bearer ${resolvedToken}`;
+    
     const response = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      
+      // Handle FastAPI validation errors
+      if (errorData.detail && Array.isArray(errorData.detail)) {
+        const validationErrors = errorData.detail.map((err: any) => 
+          `${err.loc?.join('.')}: ${err.msg}`
+        ).join(', ');
+        throw new Error(`Validation failed: ${validationErrors}`);
+      }
+      
       throw new Error((errorData as any).detail || `Request failed (${response.status})`);
     }
     return response.json();

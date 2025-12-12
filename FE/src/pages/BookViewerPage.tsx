@@ -2,12 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../shared/components/ui/button";
 import { Card, CardContent } from "../shared/components/ui/card";
-import { Badge } from "../shared/components/ui/badge";
-import { Separator } from "../shared/components/ui/separator";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Volume2, 
   Share, 
   Download, 
   Edit3,
@@ -16,6 +13,7 @@ import {
 } from "lucide-react";
 import { storybookApi } from "@/features/storybook";
 import { useSession, useUser } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 type ViewerPage = { id: string; text?: string; imageUrl?: string };
 type ViewerStory = { id: string; title: string; pages: ViewerPage[]; ownerUserId?: string };
@@ -23,8 +21,7 @@ type ViewerStory = { id: string; title: string; pages: ViewerPage[]; ownerUserId
 const BookViewerPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSpread, setCurrentSpread] = useState(0); // spread index (2 pages per turn)
   const [isLoading, setIsLoading] = useState(true);
   const [story, setStory] = useState<ViewerStory | null>(null);
   const { session, isLoaded } = useSession();
@@ -41,46 +38,51 @@ const BookViewerPage = () => {
       if (!mounted) return;
       const sb = res.storybook;
       const pages: ViewerPage[] = (sb.pages || []).map((p: any) => ({
-        id: p.id,
-        text: p.script_text,
+        id: p.id || `page-${Math.random()}`,
+        text: p.script_text || "No content available",
         imageUrl: p.image_url || '/cover.png',
       }));
       // Some responses may use camelCase userId; fall back to snake_case if present
       const ownerId = (sb as any).userId ?? (sb as any).user_id;
       setStory({ id: sb.id, title: sb.title, pages, ownerUserId: ownerId });
-      setCurrentPage(0);
+      setCurrentSpread(0);
       setIsLoading(false);
     })().catch(() => setIsLoading(false));
     return () => { mounted = false; };
   }, [id, isLoaded, session]);
 
   const handlePrevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
+    if (currentSpread > 0) {
+      setCurrentSpread(currentSpread - 1);
     }
   };
 
   const handleNextPage = () => {
-    if (story && currentPage < story.pages.length - 1) {
-      setCurrentPage(currentPage + 1);
+    const spreadCount = story ? Math.max(1, Math.ceil((story.pages?.length || 0) / 2)) : 1;
+    if (currentSpread < spreadCount - 1) {
+      setCurrentSpread(currentSpread + 1);
     }
   };
 
-  const handlePlayAudio = () => {
-    setIsPlaying(!isPlaying);
-    // TODO: Implement audio playback
-    console.log("Toggle audio playback");
-  };
-
-  const handleShare = () => {
-    // TODO: Implement sharing functionality
-    navigator.clipboard.writeText(window.location.href);
-    console.log("Story link copied to clipboard");
+  const handleShare = async () => {
+    try {
+      const currentUrl = window.location.href;
+      await navigator.clipboard.writeText(currentUrl);
+      toast.success("Link copied to clipboard!", {
+        description: "You can now share this story with others.",
+      });
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      toast.error("Failed to copy link", {
+        description: "Please try again.",
+      });
+    }
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export story as PDF");
+    toast.info("Coming Soon!", {
+      description: "Download feature is currently in development.",
+    });
   };
 
   const handleEdit = () => {
@@ -104,7 +106,25 @@ const BookViewerPage = () => {
     );
   }
 
-  const currentPageData = story.pages[currentPage];
+  // 현재 페이지 데이터를 안전하게 가져오기
+  const leftPage = story.pages && story.pages.length > 0 && currentSpread * 2 < story.pages.length 
+    ? story.pages[currentSpread * 2] 
+    : null;
+  const rightPage = story.pages && story.pages.length > 0 && currentSpread * 2 + 1 < story.pages.length 
+    ? story.pages[currentSpread * 2 + 1] 
+    : null;
+
+  // 안전한 기본값 설정
+  const safeLeftPage = leftPage || {
+    id: `page-${currentSpread * 2}`,
+    text: "No content available",
+    imageUrl: "/cover.png"
+  };
+  const safeRightPage = rightPage || {
+    id: `page-${currentSpread * 2 + 1}`,
+    text: "No content available",
+    imageUrl: "/cover.png"
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 to-pink-50">
@@ -138,108 +158,74 @@ const BookViewerPage = () => {
             )}
           </div>
 
-          {/* Book Viewer */}
-          <div className="relative max-w-4xl mx-auto">
+          {/* Book Viewer - two-page view */}
+          <div className="relative max-w-5xl mx-auto">
             <Card className="glass-effect overflow-hidden">
               <CardContent className="p-0">
-                <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
-                  {/* Image Side */}
-                  <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center p-8">
-                    <div className="aspect-square w-full max-w-sm">
-                      <img 
-                        src={currentPageData.imageUrl} 
-                        alt={`Page ${currentPage + 1}`}
-                        className="w-full h-full object-cover rounded-lg shadow-lg"
+                <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[520px] gap-6 bg-gradient-to-br from-purple-100 to-pink-100 p-6">
+                  {/* Left Page */}
+                  <div className="bg-white/85 rounded-lg shadow p-4 flex flex-col items-center gap-4">
+                    <div className="relative aspect-square w-full max-w-[240px]">
+                      <img
+                        src={safeLeftPage.imageUrl || "/cover.png"}
+                        alt={`Page ${currentSpread * 2 + 1}`}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md shadow-lg"
+                        onError={(e) => { e.currentTarget.src = "/cover.png"; }}
                       />
+                    </div>
+                    <div className="w-full bg-white/95 border border-gray-200 shadow-sm rounded-md p-3 h-[180px] overflow-auto">
+                      <p className="text-base leading-relaxed text-gray-700 whitespace-pre-wrap">
+                        {safeLeftPage.text}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Text Side */}
-                  <div className="p-8 flex flex-col justify-center relative">
-                    <div className="text-center lg:text-left">
-                      <div className="text-base sm:text-lg leading-relaxed text-gray-700 mb-6">
-                        {currentPageData.text}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePlayAudio}
-                        className={`absolute bottom-4 right-4 flex items-center gap-2 ${isPlaying ? 'bg-purple-100' : ''}`}
-                        aria-label="Listen"
-                        title="Listen"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        {isPlaying ? 'Pause' : 'Listen'}
-                      </Button>
-                      
-                      <Separator className="my-6" />
-                      
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Page {currentPage + 1} of {story.pages.length}</span>
-                        <div className="flex gap-1">
-                          {story.pages.map((_, index) => (
-                            <div
-                              key={index}
-                              className={`w-2 h-2 rounded-full transition-colors ${
-                                index === currentPage ? 'bg-purple-500' : 'bg-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                  {/* Right Page */}
+                  <div className="bg-white/85 rounded-lg shadow p-4 flex flex-col items-center gap-4">
+                    <div className="relative aspect-square w-full max-w-[240px]">
+                      <img
+                        src={safeRightPage.imageUrl || "/cover.png"}
+                        alt={`Page ${currentSpread * 2 + 2}`}
+                        className="absolute inset-0 w-full h-full object-cover rounded-md shadow-lg"
+                        onError={(e) => { e.currentTarget.src = "/cover.png"; }}
+                      />
+                    </div>
+                    <div className="w-full bg-white/95 border border-gray-200 shadow-sm rounded-md p-3 h-[180px] overflow-auto">
+                      <p className="text-base leading-relaxed text-gray-700 whitespace-pre-wrap">
+                        {safeRightPage.text}
+                      </p>
                     </div>
                   </div>
                 </div>
+
+                {/* Controls */}
+                <div className="p-4 border-t bg-white/80 flex items-center justify-between gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentSpread === 0}
+                    className="flex items-center gap-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentSpread * 2 + 1} - {Math.min(story.pages.length, currentSpread * 2 + 2)} of {story.pages.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentSpread >= Math.max(1, Math.ceil((story.pages?.length || 0) / 2)) - 1}
+                    className="flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-
-            {/* Navigation Buttons */}
-            <div className="absolute top-1/2 -translate-y-1/2 left-4 lg:-left-16">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handlePrevPage}
-                disabled={currentPage === 0}
-                className="w-12 h-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </Button>
-            </div>
-            
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 lg:-right-16">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleNextPage}
-                disabled={currentPage === story.pages.length - 1}
-                className="w-12 h-12 rounded-full shadow-lg bg-white/90 backdrop-blur-sm"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </Button>
-            </div>
-
-            {/* Mobile Navigation */}
-            <div className="flex justify-center gap-4 mt-6 lg:hidden">
-              <Button
-                variant="outline"
-                onClick={handlePrevPage}
-                disabled={currentPage === 0}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
-              
-              <Button
-                variant="outline"
-                onClick={handleNextPage}
-                disabled={currentPage === story.pages.length - 1}
-                className="flex items-center gap-2"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
           </div>
         </div>
       </main>
