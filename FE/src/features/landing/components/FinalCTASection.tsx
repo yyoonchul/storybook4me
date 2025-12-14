@@ -72,7 +72,7 @@ const FinalCTASection = () => {
               <Button 
                 size="lg" 
                 className="magic-gradient hover-lift hover-glow text-xl px-12 py-8 h-auto font-bold rounded-2xl shadow-soft"
-                onClick={() => navigate('/waitlist')}
+                onClick={() => navigate('/')}
               >
                 <Sparkles className="mr-3 h-6 w-6" />
                 Make My Child's Storybook in 10 Seconds

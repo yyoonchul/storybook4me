@@ -1,0 +1,172 @@
+"""
+High-level chat services for the Studio experience.
+"""
+
+import logging
+from typing import Iterable
+
+from app.shared.llm.base import Provider, generate_structured, generate_text
+from app.shared.llm.llm_config import DEFAULT_REWRITE_MODEL, DEFAULT_REWRITE_PROVIDER
+
+from ..models.classification import ClassificationSchema
+from ..output_schemas.draft import FinalScriptSchema, SpreadScript
+
+CLASSIFICATION_PROMPT = """You are a classifier for requests inside a children's story editing studio.
+
+User message:
+\"\"\"{message}\"\"\"
+
+Decide whether the user wants to MODIFY the story (action = "edit") or is only ASKING ABOUT the story without requesting changes (action = "question").
+
+Rules:
+- Return action "edit" when the user asks to rewrite, change, adjust tone/length/style, add/remove content, or otherwise modify the story.
+- Return action "question" when the user only seeks clarification, summaries, themes, or any information without demanding modifications.
+- If both appear, prefer "edit".
+
+Output strict JSON: {{"action": "edit"}} or {{"action": "question"}}.
+"""
+
+QUESTION_ANSWER_PROMPT = """You are a helpful assistant for parents reviewing a children's picture book story.
+
+Story context (14 spreads, left/right pages):
+{story_context}
+
+User question:
+\"\"\"{question}\"\"\"
+
+Answer the question in 2-4 sentences:
+- Reference relevant story details.
+- Keep language friendly, supportive, and suitable for discussing stories for ages 4-5.
+- If the question cannot be answered from the provided story, politely say so.
+"""
+
+
+def classify_message(message: str, user_id: str | None = None) -> ClassificationSchema:
+    """Classify the incoming chat message using an LLM with heuristic fallback."""
+    try:
+        result = generate_structured(
+            provider=Provider(DEFAULT_REWRITE_PROVIDER),
+            model=DEFAULT_REWRITE_MODEL,
+            input_text=CLASSIFICATION_PROMPT.format(message=message),
+            schema=ClassificationSchema,
+            user_id=user_id,
+            usage_metadata={
+                "service": "studio.chat.classify",
+            },
+        )
+        return result.parsed
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "LLM classification failed, using heuristic fallback: %s", exc
+        )
+        action = _heuristic_classification(message)
+        return ClassificationSchema(action=action)
+
+
+def answer_question(
+    script: FinalScriptSchema,
+    message: str,
+    user_id: str | None = None,
+) -> str:
+    """
+    Provide a natural-language answer to a question about the current story.
+    """
+    story_context = _build_story_context(script.spreads)
+    prompt = QUESTION_ANSWER_PROMPT.format(
+        story_context=story_context,
+        question=message,
+    )
+    result = generate_text(
+        provider=Provider(DEFAULT_REWRITE_PROVIDER),
+        model=DEFAULT_REWRITE_MODEL,
+        input_text=prompt,
+        user_id=user_id,
+        usage_metadata={
+            "service": "studio.chat.answer",
+            "storybook_id": script.storybook_id,
+        },
+    )
+    if not result.text:
+        raise ValueError("Failed to generate an answer for the question.")
+    return result.text
+
+
+def _build_story_context(spreads: Iterable[SpreadScript]) -> str:
+    """
+    Convert spreads into a compact textual context for prompting.
+    """
+    lines: list[str] = []
+    for spread in spreads:
+        lines.append(
+            f"Spread {spread.spread_number}: "
+            f"Left='{spread.script_1}' | Right='{spread.script_2}'"
+        )
+    return "\n".join(lines)
+
+
+def _heuristic_classification(message: str) -> str:
+    """
+    Rule-based fallback classification when LLM generation fails.
+
+    Uses simple keyword checks to distinguish between edit requests and questions.
+    Defaults to "question" to avoid unintended rewrites.
+    """
+    if not message:
+        return "question"
+
+    text = message.lower()
+
+    edit_keywords = [
+        "edit",
+        "rewrite",
+        "change",
+        "adjust",
+        "modify",
+        "update",
+        "replace",
+        "fix",
+        "revise",
+        "shorten",
+        "lengthen",
+        "longer",
+        "shorter",
+        "tone",
+        "style",
+        "add",
+        "remove",
+        "delete",
+        "swap",
+        "make it",
+        "can you make",
+        "turn it into",
+        "improve",
+        "polish",
+    ]
+
+    question_keywords = [
+        "who",
+        "what",
+        "when",
+        "where",
+        "why",
+        "how",
+        "explain",
+        "tell me",
+        "summar",
+        "synopsis",
+        "theme",
+        "meaning",
+        "message",
+        "moral",
+    ]
+
+    if any(keyword in text for keyword in edit_keywords):
+        return "edit"
+
+    if any(keyword in text for keyword in question_keywords):
+        return "question"
+
+    # Default to question to prevent unintended rewrites
+    return "question"
+
+

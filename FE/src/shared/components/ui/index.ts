@@ -17,7 +17,7 @@ export * from "./dialog";
 export * from "./sheet";
 export * from "./toast";
 export * from "./toaster";
-export * from "./sonner";
+export { Toaster as Sonner } from "./sonner";
 export * from "./tooltip";
 export * from "./popover";
 export * from "./dropdown-menu";

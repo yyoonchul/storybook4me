@@ -1,30 +1,89 @@
 import { Toaster } from "./shared/components/ui/toaster";
-import { Toaster as Sonner } from "./shared/components/ui/sonner";
+import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "./shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useSession } from "@clerk/clerk-react";
+import { setAuthTokenProvider } from "@/shared/lib/api-client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import MainPage from "./pages/MainPage";
+import WelcomePage from "./pages/WelcomePage";
+import ExplorePage from "./pages/ExplorePage";
+import StudioPage from "./pages/StudioPage";
+import BookViewerPage from "./pages/BookViewerPage";
+import AccountPage from "./pages/settings/AccountPage";
+import BillingPage from "./pages/settings/BillingPage";
+import CharacterFormPage from "./pages/family/CharacterFormPage";
+import AboutPage from "./pages/info/AboutPage";
+import FAQPage from "./pages/info/FAQPage";
+import ContactPage from "./pages/info/ContactPage";
+import TermsPage from "./pages/info/TermsPage";
+import PrivacyPage from "./pages/info/PrivacyPage";
+import TestUploadPage from "./pages/TestUploadPage";
 import NotFound from "./pages/NotFound";
-import { WaitlistPage } from "./features/landing/components";
+import { LandingPage } from "@/features/landing";
+import { ErrorBoundary } from "./shared/components/ErrorBoundary";
+// Clerk is provided at root in main.tsx; remove legacy AuthProvider
+import { useScrollToTop } from "./shared/hooks/useScrollToTop";
+import { PlanDialogProvider } from "@/shared/components/plan/PlanDialogProvider";
+import { SubscriptionProvider } from "@/features/billing";
 
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/waitlist" element={<WaitlistPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const { session } = useSession();
+
+  // Register global token provider with Clerk template for backend verification
+  // Adjust template name if your Clerk JWT template differs
+  useEffect(() => {
+    setAuthTokenProvider(() => session?.getToken({ template: 'storybook4me' }) ?? Promise.resolve(null));
+  }, [session]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SubscriptionProvider>
+          <PlanDialogProvider>
+            <Toaster />
+            <Sonner position="top-right" richColors />
+            <BrowserRouter>
+              <ErrorBoundary>
+                <ScrollToTopWrapper />
+                <Routes>
+                  <Route path="/" element={<MainPage />} />
+                  <Route path="/welcome" element={<WelcomePage />} />
+                  {/* Family handled within MainPage's section; no standalone /family route */}
+                  <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/studio" element={<StudioPage />} />
+                  <Route path="/studio/:id" element={<StudioPage />} />
+                  <Route path="/book/:id" element={<BookViewerPage />} />
+                  <Route path="/settings/account" element={<AccountPage />} />
+                  <Route path="/settings/billing" element={<BillingPage />} />
+                  <Route path="/family/character/:id" element={<CharacterFormPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/faq" element={<FAQPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
+                  <Route path="/privacy" element={<PrivacyPage />} />
+                  {/* Temporary test route for file upload API */}
+                  <Route path="/test-upload" element={<TestUploadPage />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </PlanDialogProvider>
+        </SubscriptionProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+// Wrapper component to use the hook inside BrowserRouter
+const ScrollToTopWrapper = () => {
+  useScrollToTop();
+  return null;
+};
 
 export default App;

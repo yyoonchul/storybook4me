@@ -2,6 +2,15 @@
 
 FastAPI backend application following feature-based architecture.
 
+## Notes
+
+- Dependencies pinned to resolve resolver conflicts:
+  - `openai==1.67.0`
+  - `google-genai==1.0.0`
+  - `anyio>=4.8,<5`
+  - `httpx==0.27.2`
+  - `pydantic==2.10.4` (matches `svix==1.82.0`)
+
 ## Setup
 
 1. Create a virtual environment:

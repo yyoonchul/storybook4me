@@ -134,7 +134,7 @@ const UseCasesSection = () => {
                     useCase.color === 'rose' ? 'border-rose-300 text-rose-600 hover:bg-rose-50 hover:border-rose-400' :
                     'border-amber-300 text-amber-600 hover:bg-amber-50 hover:border-amber-400'
                   } text-sm px-4 py-2 h-auto font-medium`}
-                  onClick={() => navigate('/waitlist')}
+                  onClick={() => navigate('/')}
                 >
                   <ArrowRight className="mr-1 h-4 w-4" />
                   Create {useCase.title} Story
