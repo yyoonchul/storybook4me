@@ -1,1 +1,17 @@
 .env
+# Common ignores
+.DS_Store
+.cursor/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+dist/
+build/
+coverage/
+*.local
+.idea/
+.vscode/
+*.env*
