@@ -2,22 +2,20 @@
 
 Personalized, AI-assisted storybooks made for your kid — type an idea, pick your family, and watch a 14-spread book appear in seconds.
 
+> **Status**: 95% complete MVP — archived (portfolio snapshot, read-only)
+
 ## Watch the launch film
-- [Launch video placeholder](#) — drop the main cinematic cut here.
-- [1-min product loop](#) — quick tour for busy parents.
-- [How it works (studio walkthrough)](#) — screen recording with narration.
+
+[![Launch film thumbnail](https://placehold.co/1280x720/png?text=Launch+film+%E2%86%92)](https://youtu.be/VIDEO_ID)
+
+- [1-min product loop](#)
+- [Studio walkthrough](#)
 
 ## Quick pitch
 - Turn a single prompt into a full story draft almost instantly.
 - Build your family cast (or use Storybook4me friends) and keep them reusable.
 - Co-edit with an AI storyteller that can rewrite pages on request.
 - Save to your bookshelf, set public/private, and browse community picks in Explore.
-
-## Video beats to script
-- Open on the landing hero: type “Twins Mia and Noah build a rocket to the moon...” and click create — show the spinner, then the studio loading in.
-- Cut to “My Family”: add mom/dad/child avatars and reuse them in the story settings.
-- Glide through the Studio: pick an art style, hit Generate, flip through the 14 spreads, tweak a page, and ask the AI chat to “make page 5 funnier”.
-- End on Bookshelf & Explore: toggle a book to public, open a card, and show the shareable preview.
 
 ## Product flow
 1) Landing hero: enter an idea and start a story instantly.  
@@ -34,18 +32,11 @@ Personalized, AI-assisted storybooks made for your kid — type an idea, pick yo
 - Explore gallery: search, category filter, and sort (latest/popular/viewed).
 - Plans: free users can draft; Plus unlocks AI chat editing (upgrade prompt in Studio).
 
-## Where to drop videos in this README
-- Hero embed under “Watch the launch film”.
-- Short loop above “Product flow”.
-- Feature clips (Studio, Family, Explore) beside each bullet in “Video beats to script”.
-- Add GIFs/stills inline under “Features at a glance” if you want scannable visuals.
+## Feature demos (short clips)
+- Studio (generate → flip → rewrite): [GIF](#)
+- Characters (build your family cast): [GIF](#)
+- Bookshelf & Explore (public sharing + browsing): [GIF](#)
 
 ## Try it quickly (dev)
 - Frontend: `npm install` then `npm run dev` in `FE/`.
 - Backend: `python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python main.py` in `BE/`.
-
-## What to emphasize in narration
-- “Made for your child” — the hero makes that promise upfront.
-- “10 seconds to magic” — show idea → spinner → finished spreads.
-- “You stay in control” — character selection, art style carousel, and page-level edits.
-- “Instant sharing” — bookshelf visibility toggle and exploreable public stories.
