@@ -2,11 +2,9 @@
 
 Personalized, AI-assisted storybooks made for your kid — type an idea, pick your family, and watch a 14-spread book appear in seconds.
 
-> **Status**: 95% complete MVP — archived (portfolio snapshot, read-only)
+> **Status**: 95% complete MVP — archived 
 
 ## Watch the launch film
-
-[![Launch film thumbnail](https://placehold.co/1280x720/png?text=Launch+film+%E2%86%92)](https://youtu.be/VIDEO_ID)
 
 - [1-min product loop](#)
 - [Studio walkthrough](#)
