@@ -1,17 +1,35 @@
 .env
-# Common ignores
-.DS_Store
+
+# Environment files (keep examples)
+*.env*
+!.env.example
+!**/.env.example
+
+# Cursor
 .cursor/
-venv/
-.venv/
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Node
+node_modules/
+dist/
+build/
+
+# Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
-*.log
-dist/
-build/
+venv/
+.venv/
+
+# Coverage / local overrides
 coverage/
 *.local
+
+# IDE
 .idea/
 .vscode/
-*.env*
