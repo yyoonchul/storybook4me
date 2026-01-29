@@ -2,7 +2,19 @@
 
 from fastapi import APIRouter, Header, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
-from svix.webhooks import Webhook, WebhookVerificationError
+try:
+    from svix.webhooks import Webhook, WebhookVerificationError
+except Exception as exc:  # pragma: no cover
+    # NOTE:
+    # `svix` depends on a recent Pydantic which exports `ModelWrapValidatorHandler`
+    # from the top-level `pydantic` module. If your environment has an older
+    # Pydantic, importing `svix` can crash the app at startup.
+    #
+    # We keep the server bootable (portfolio/archive friendliness) and surface a
+    # clear error only if the billing webhook route is hit.
+    Webhook = None  # type: ignore[assignment]
+    WebhookVerificationError = Exception  # type: ignore[assignment]
+    _SVIX_IMPORT_ERROR: Exception = exc
 
 from app.core.config import settings
 from app.features.billing.services import sync_subscription_plan, SubscriptionSyncError, get_user_subscription_plan
@@ -46,6 +58,17 @@ async def handle_clerk_billing_webhook(
         raise HTTPException(
             status_code=400,
             detail=f"Missing Svix headers: {', '.join(missing_headers)}",
+        )
+
+    if Webhook is None:  # pragma: no cover
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Svix dependency failed to import. "
+                "Recreate the backend venv and reinstall requirements. "
+                "Expected Pydantic >= 2.12.x (see `BE/requirements.txt`). "
+                f"Original error: {_SVIX_IMPORT_ERROR}"
+            ),
         )
 
     secret = settings.clerk_webhook_signing_secret

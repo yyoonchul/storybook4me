@@ -1,7 +1,8 @@
 """Main FastAPI application entry point."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.features.waitlist import router as waitlist_router
@@ -15,6 +16,7 @@ from app.features.studio.storybook_generator.api import (
     router as studio_rewrite_router,
 )
 from app.features.billing.api import router as billing_router
+from app.shared.database.supabase_client import SupabaseNotConfiguredError
 
 
 def create_app() -> FastAPI:
@@ -33,6 +35,18 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(SupabaseNotConfiguredError)
+    async def supabase_not_configured_handler(
+        _request: Request, exc: SupabaseNotConfiguredError
+    ):
+        # Prefer a clear, non-sensitive message for public/archived repos.
+        detail = (
+            str(exc)
+            if settings.debug
+            else "Backend is not configured (missing Supabase settings). See `BE/.env.example`."
+        )
+        return JSONResponse(status_code=503, content={"detail": detail})
     
     # Include routers
     app.include_router(waitlist_router, prefix="/api")

@@ -4,10 +4,6 @@ Personalized, AI-assisted storybooks made for your kid — type an idea, pick yo
 
 > **Status**: 95% complete MVP — archived 
 
-## Watch the launch film
-
-- [1-min product loop](#)
-- [Studio walkthrough](#)
 
 ## Quick pitch
 - Turn a single prompt into a full story draft almost instantly.
@@ -29,11 +25,6 @@ Personalized, AI-assisted storybooks made for your kid — type an idea, pick yo
 - Bookshelf controls: edit, visibility toggle, and quick delete/create.
 - Explore gallery: search, category filter, and sort (latest/popular/viewed).
 - Plans: free users can draft; Plus unlocks AI chat editing (upgrade prompt in Studio).
-
-## Feature demos (short clips)
-- Studio (generate → flip → rewrite): [GIF](#)
-- Characters (build your family cast): [GIF](#)
-- Bookshelf & Explore (public sharing + browsing): [GIF](#)
 
 ## Try it quickly (dev)
 - Frontend: `npm install` then `npm run dev` in `FE/`.
